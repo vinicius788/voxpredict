@@ -1,0 +1,59 @@
+type Market @entity {
+  id: ID!
+  address: Bytes!
+  question: String!
+  description: String!
+  options: [String!]!
+  endTime: BigInt!
+  minBet: BigInt!
+  maxBet: BigInt!
+  category: String!
+  tags: [String!]!
+  creator: Bytes!
+  isActive: Boolean!
+  isResolved: Boolean!
+  winningOption: BigInt
+  totalVolume: BigInt!
+  totalBettors: Int!
+  createdAt: BigInt!
+  resolvedAt: BigInt
+}
+
+type Bet @entity {
+  id: ID!
+  user: Bytes!
+  market: Market!
+  option: BigInt!
+  amount: BigInt!
+  timestamp: BigInt!
+}
+
+type User @entity {
+  id: ID!
+  address: Bytes!
+  totalBets: Int!
+  totalVolume: BigInt!
+  bets: [Bet!]! @derivedFrom(field: "user")
+  winCount: Int!
+  lossCount: Int!
+}
+
+type MarketDailySnapshot @entity {
+  id: ID!
+  market: Market!
+  date: String!
+  volume: BigInt!
+  bettorCount: Int!
+  simProbability: BigInt!
+  naoProbability: BigInt!
+}
+
+type PlatformStat @entity {
+  id: ID!
+  totalMarkets: Int!
+  activeMarkets: Int!
+  totalVolume: BigInt!
+  totalBettors: Int!
+  totalFees: BigInt!
+  lastUpdated: BigInt!
+}

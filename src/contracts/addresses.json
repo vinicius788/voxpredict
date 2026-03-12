@@ -1,0 +1,11 @@
+{
+  "USDT": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+  "VoxPredictTreasury": "0x3f12fFbbfa1D10e66462Dc41D926F9C72eDd5f5b",
+  "VoxPredictMarketFactory": "0x2345678901234567890123456789012345678901",
+  "VoxPredictVault": "0x4567890123456789012345678901234567890123",
+  "network": {
+    "name": "polygon",
+    "chainId": 137
+  },
+  "deployedAt": "2024-05-01T12:00:00.000Z"
+}
