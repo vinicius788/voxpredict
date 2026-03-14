@@ -42,6 +42,7 @@ export type MarketFilters = {
   page?: number;
   limit?: number;
   sortBy?: 'volume' | 'newest' | 'ending' | 'resolvedAt';
+  includeAll?: boolean;
 };
 
 export type RegisterPositionInput = {
@@ -60,6 +61,32 @@ export type CategoryInput = {
   color?: string;
   active?: boolean;
   sortOrder?: number;
+};
+
+export type ProposalInput = {
+  title: string;
+  description: string;
+  category: string;
+  resolveBy: string;
+  tags?: string[];
+};
+
+export type TemplateInput = {
+  name: string;
+  titleTemplate: string;
+  descTemplate: string;
+  category: string;
+  frequency: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY';
+  variables?: Record<string, string>;
+  minBet?: number;
+  maxBet?: number;
+  active?: boolean;
+};
+
+export type VaultMutationInput = {
+  txHash: string;
+  amount: number | string;
+  token: string;
 };
 
 export const api = {
@@ -87,14 +114,28 @@ export const api = {
     request<any>(`/api/markets/${id}/resolve`, { method: 'POST', body: JSON.stringify({ outcome }) }),
 
   getMyStats: () => request<any>('/api/users/me/stats'),
+  getMyActivity: (limit = 20) => request<any>(`/api/users/me/activity?limit=${Math.max(1, Math.floor(limit))}`),
+  getMyPortfolioHistory: (period: '7d' | '30d' | '90d' | 'all' = '30d') =>
+    request<any>(`/api/users/me/portfolio-history?period=${encodeURIComponent(period)}`),
   getMyPositions: () => request<any>('/api/positions/my'),
   getNotifications: () => request<any>('/api/notifications'),
   markAllRead: () => request<any>('/api/notifications/read-all', { method: 'PUT' }),
+  registerVaultDeposit: (data: VaultMutationInput) =>
+    request<any>('/api/vault/deposit', { method: 'POST', body: JSON.stringify(data) }),
+  registerVaultWithdrawal: (data: VaultMutationInput) =>
+    request<any>('/api/vault/withdraw', { method: 'POST', body: JSON.stringify(data) }),
 
   getAdminStats: () => request<any>('/api/admin/stats'),
   getFinancialOverview: () => request<any>('/api/finance/overview'),
 
-  getCategories: () => request<any>('/api/categories'),
+  getCategories: (params?: { includeInactive?: boolean }) => {
+    const query = new URLSearchParams();
+    if (params?.includeInactive) {
+      query.set('includeInactive', 'true');
+    }
+    const qs = query.toString();
+    return request<any>(`/api/categories${qs ? `?${qs}` : ''}`);
+  },
   createCategory: (data: CategoryInput) =>
     request<any>('/api/categories', { method: 'POST', body: JSON.stringify(data) }),
   updateCategory: (id: string, data: Partial<CategoryInput>) =>
@@ -106,7 +147,7 @@ export const api = {
     }),
   deleteCategory: (id: string) => request<any>(`/api/categories/${id}`, { method: 'DELETE' }),
 
-  generateMarketFromAI: (newsText: string, endDate: string) =>
+  generateMarketFromAI: (newsText?: string, endDate?: string) =>
     request<any>('/api/ai/generate-market', {
       method: 'POST',
       body: JSON.stringify({ newsText, endDate }),
@@ -125,4 +166,24 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ txHash }),
     }),
+
+  createProposal: (data: ProposalInput) =>
+    request<any>('/api/proposals', { method: 'POST', body: JSON.stringify(data) }),
+  getMyProposals: () => request<any>('/api/proposals/my'),
+  getProposals: (status?: 'PENDING' | 'APPROVED' | 'REJECTED') =>
+    request<any>(`/api/proposals${status ? `?status=${status}` : ''}`),
+  approveProposal: (
+    id: number,
+    data?: Partial<ProposalInput & { minBet: number; maxBet: number; adminNote: string }>,
+  ) => request<any>(`/api/proposals/${id}/approve`, { method: 'PUT', body: JSON.stringify(data || {}) }),
+  rejectProposal: (id: number, adminNote: string) =>
+    request<any>(`/api/proposals/${id}/reject`, { method: 'PUT', body: JSON.stringify({ adminNote }) }),
+
+  getTemplates: () => request<any>('/api/templates'),
+  createTemplate: (data: TemplateInput) =>
+    request<any>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
+  updateTemplate: (id: number, data: Partial<TemplateInput>) =>
+    request<any>(`/api/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  runTemplate: (id: number) => request<any>(`/api/templates/${id}/run`, { method: 'POST' }),
+  runDueTemplates: () => request<any>('/api/templates/run-due', { method: 'POST' }),
 };

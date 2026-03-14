@@ -18,16 +18,18 @@ type ResolutionLog = {
   adminEmail: string;
 };
 
-export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = ({ isBrandTheme = false }) => {
+export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
   const { data: pendingMarketsResponse, refetch: refetchPending } = useMarkets({
     status: 'ACTIVE',
     sortBy: 'ending',
     limit: 200,
+    includeAll: true,
   });
   const { data: resolvedMarketsResponse, refetch: refetchResolved } = useMarkets({
     status: 'RESOLVED',
     sortBy: 'resolvedAt',
     limit: 50,
+    includeAll: true,
   });
   const { mutateAsync: resolveMarket } = useResolveMarket();
 
@@ -37,10 +39,10 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = ({ isBran
   const [showConfetti, setShowConfetti] = useState(false);
 
   const themeClasses = {
-    cardBg: isBrandTheme ? 'bg-gray-800' : 'bg-white',
-    text: isBrandTheme ? 'text-white' : 'text-gray-900',
-    textSecondary: isBrandTheme ? 'text-gray-300' : 'text-gray-600',
-    border: isBrandTheme ? 'border-gray-700' : 'border-gray-200',
+    cardBg: 'bg-[#1e1e30]',
+    text: 'text-white',
+    textSecondary: 'text-gray-400',
+    border: 'border-white/10',
   };
 
   const pendingMarkets = useMemo(() => pendingMarketsResponse?.markets || [], [pendingMarketsResponse?.markets]);
@@ -118,10 +120,10 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = ({ isBran
         <h2 className={`text-xl font-semibold ${themeClasses.text}`}>Resolver Mercados</h2>
         <p className={`text-sm ${themeClasses.textSecondary} mt-1`}>Finalize mercados encerrados com confirmação obrigatória.</p>
 
-        <div className={`${isBrandTheme ? 'bg-amber-900/20 border-amber-700' : 'bg-amber-50 border-amber-200'} rounded-xl p-4 border mt-4`}>
+        <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-500" />
-            <span className="text-sm font-medium text-amber-700 dark:text-amber-300">{expiredMarkets.length} mercado(s) aguardando resolução</span>
+            <span className="text-sm font-medium text-amber-300">{expiredMarkets.length} mercado(s) aguardando resolução</span>
           </div>
         </div>
       </div>

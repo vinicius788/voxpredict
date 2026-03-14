@@ -10,8 +10,8 @@ interface VaultManagerProps {
 export const VaultManager: React.FC<VaultManagerProps> = ({ 
   isBrandTheme = false 
 }) => {
-  const { vaultData, isLoading, deposit, withdraw } = useVaultContract();
   const { isWalletConnected } = useWeb3();
+  const { vaultData, isLoading, deposit, withdraw } = useVaultContract(isWalletConnected);
   const [amount, setAmount] = useState('10');
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
 
@@ -29,7 +29,8 @@ export const VaultManager: React.FC<VaultManagerProps> = ({
   };
 
   const handleWithdraw = async () => {
-    await withdraw();
+    if (vaultData.availableBalance <= 0) return;
+    await withdraw(vaultData.availableBalance);
   };
 
   if (!isWalletConnected) {
@@ -68,7 +69,7 @@ export const VaultManager: React.FC<VaultManagerProps> = ({
             Balance
           </div>
           <div className={`text-xl font-bold ${themeClasses.text}`}>
-            ${vaultData.lockedBalance.toFixed(2)}
+            ${vaultData.availableBalance.toFixed(2)}
           </div>
         </div>
         
@@ -140,14 +141,14 @@ export const VaultManager: React.FC<VaultManagerProps> = ({
                 Available to withdraw
               </div>
               <div className={`text-lg font-bold ${themeClasses.text}`}>
-                ${vaultData.lockedBalance.toFixed(2)}
+                ${vaultData.availableBalance.toFixed(2)}
               </div>
             </div>
           </div>
           
           <button
             onClick={handleWithdraw}
-            disabled={isLoading || vaultData.lockedBalance === 0 || vaultData.isInPrediction}
+            disabled={isLoading || vaultData.availableBalance === 0 || vaultData.isInPrediction}
             className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             <ArrowUp className="w-4 h-4" />

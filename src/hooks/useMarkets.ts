@@ -10,14 +10,22 @@ type ApiMarket = {
   category: string;
   endTime: string;
   totalVolume: number;
+  totalYes?: number;
+  totalNo?: number;
+  yesPool?: number;
+  noPool?: number;
   participants?: number;
   totalBettors?: number;
   simOdds?: number;
   naoOdds?: number;
+  yesOdds?: number;
+  noOdds?: number;
   yesMultiplier?: number;
   noMultiplier?: number;
   simProbability?: number;
   naoProbability?: number;
+  yesProbability?: number;
+  noProbability?: number;
   yesProb?: number;
   noProb?: number;
   status: string;
@@ -43,25 +51,49 @@ const mapStatus = (status: string): Market['status'] => {
   return 'closed';
 };
 
-export const mapApiMarketToUi = (market: ApiMarket): Market => ({
-  id: String(market.id),
-  title: market.title || market.question || 'Mercado sem título',
-  description: market.description || '',
-  category: market.category,
-  endDate: market.endTime,
-  createdAt: market.createdAt,
-  resolvedAt: market.resolvedAt ?? null,
-  totalVolume: Number(market.totalVolume || 0),
-  totalBettors: Number(market.totalBettors ?? market.participants ?? 0),
-  simOdds: Number(market.simOdds ?? market.yesMultiplier ?? 2),
-  naoOdds: Number(market.naoOdds ?? market.noMultiplier ?? 2),
-  simProbability: Number(market.simProbability ?? market.yesProb ?? 50),
-  naoProbability: Number(market.naoProbability ?? market.noProb ?? 50),
-  status: mapStatus(market.status),
-  outcome: market.outcome || null,
-  token: market.token || 'USDT',
-  tags: market.tags || [],
-});
+export const mapApiMarketToUi = (market: ApiMarket): Market => {
+  const totalYes = Number(market.totalYes ?? market.yesPool ?? 0);
+  const totalNo = Number(market.totalNo ?? market.noPool ?? 0);
+  const totalVolume = Number(market.totalVolume || totalYes + totalNo || 0);
+  const yesProbabilityPct =
+    market.simProbability ??
+    market.yesProb ??
+    (market.yesProbability !== undefined ? Number(market.yesProbability) * 100 : 50);
+  const noProbabilityPct =
+    market.naoProbability ??
+    market.noProb ??
+    (market.noProbability !== undefined ? Number(market.noProbability) * 100 : 50);
+  const yesOdds = Number(market.simOdds ?? market.yesOdds ?? market.yesMultiplier ?? 2);
+  const noOdds = Number(market.naoOdds ?? market.noOdds ?? market.noMultiplier ?? 2);
+
+  return {
+    id: String(market.id),
+    title: market.title || market.question || 'Mercado sem título',
+    description: market.description || '',
+    category: market.category,
+    endDate: market.endTime,
+    createdAt: market.createdAt,
+    resolvedAt: market.resolvedAt ?? null,
+    totalVolume,
+    totalYes,
+    totalNo,
+    yesPool: totalYes,
+    noPool: totalNo,
+    totalBettors: Number(market.totalBettors ?? market.participants ?? 0),
+    simOdds: yesOdds,
+    naoOdds: noOdds,
+    yesOdds,
+    noOdds,
+    simProbability: Number(yesProbabilityPct),
+    naoProbability: Number(noProbabilityPct),
+    yesProbability: market.yesProbability !== undefined ? Number(market.yesProbability) : Number(yesProbabilityPct) / 100,
+    noProbability: market.noProbability !== undefined ? Number(market.noProbability) : Number(noProbabilityPct) / 100,
+    status: mapStatus(market.status),
+    outcome: market.outcome || null,
+    token: market.token || 'USDT',
+    tags: market.tags || [],
+  };
+};
 
 export function useMarkets(filters: MarketFilters = {}) {
   return useQuery({

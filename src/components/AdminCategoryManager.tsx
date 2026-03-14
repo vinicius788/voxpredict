@@ -55,18 +55,6 @@ const DEFAULT_COLOR_BY_NAME: Record<string, string> = {
   ciencia: '#6366F1',
 };
 
-const DEFAULT_CATEGORIES: Array<Pick<Category, 'id' | 'label' | 'icon' | 'description'>> = [
-  { id: 'política', label: 'Política', icon: '🏛️', description: 'Eventos políticos, eleições e governos' },
-  { id: 'cripto', label: 'Cripto', icon: '₿', description: 'Mercados de criptomoedas e blockchain' },
-  { id: 'esportes', label: 'Esportes', icon: '⚽', description: 'Eventos esportivos e competições' },
-  { id: 'tecnologia', label: 'Tecnologia', icon: '💻', description: 'Inovações tecnológicas e lançamentos' },
-  { id: 'economia', label: 'Economia', icon: '📈', description: 'Indicadores econômicos e mercados financeiros' },
-  { id: 'entretenimento', label: 'Entretenimento', icon: '🎬', description: 'Cinema, música e cultura pop' },
-  { id: 'geopolítica', label: 'Geopolítica', icon: '🌍', description: 'Relações internacionais e conflitos globais' },
-  { id: 'negócios', label: 'Negócios', icon: '💼', description: 'Empresas, startups e mercado corporativo' },
-  { id: 'ciência', label: 'Ciência', icon: '🔬', description: 'Descobertas científicas e pesquisas' },
-];
-
 const ICON_OPTIONS = ['🎯', '🏛️', '₿', '⚽', '💻', '📈', '🎬', '🌍', '💼', '🔬', '🎮', '🏆', '🚀', '📱', '🌐'];
 
 const normalizeKey = (value: string) =>
@@ -115,8 +103,25 @@ const normalizeCategory = (category: Partial<Category>, fallbackOrder: number): 
     active: category.active ?? true,
     color: category.color || getDefaultColor(label, id),
     order: typeof category.order === 'number' ? category.order : fallbackOrder,
+    marketCount: Number(category.marketCount ?? 0),
+    totalVolume: Number(category.totalVolume ?? 0),
   };
 };
+
+const mapApiCategories = (items: Array<Partial<Category>>) =>
+  items
+    .map((category, index) =>
+      normalizeCategory(
+        {
+          ...category,
+          order: category.order ?? (category as any).sortOrder,
+          marketCount: (category as any).marketCount ?? 0,
+          totalVolume: (category as any).totalVolume ?? 0,
+        },
+        index + 1,
+      ),
+    )
+    .sort((a, b) => a.order - b.order);
 
 type ModalMode = 'create' | 'edit' | null;
 
@@ -166,8 +171,8 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-[12px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4 transition-colors ${
-        isDragging ? 'opacity-75 shadow-lg' : 'hover:bg-[rgba(255,255,255,0.045)]'
+      className={`rounded-[12px] border border-white/10 bg-[#1e1e30] p-4 transition-colors ${
+        isDragging ? 'opacity-75 shadow-lg' : 'hover:border-white/20'
       } ${category.active ? '' : 'opacity-70'}`}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -176,7 +181,7 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
             type="button"
             {...attributes}
             {...listeners}
-            className="mt-1 rounded-[8px] border border-[var(--border)] p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="mt-1 rounded-[8px] border border-white/10 p-1.5 text-gray-500 hover:text-white"
             aria-label={`Reordenar categoria ${category.label}`}
           >
             <GripVertical className="h-4 w-4" />
@@ -189,10 +194,10 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">{category.label}</h3>
-              <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+              <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-gray-300">
                 {marketCount} {marketCount === 1 ? 'mercado' : 'mercados'}
               </span>
-              <span className="mono-value text-xs text-[var(--text-muted)]">Vol {formatCompactCurrency(totalVolume)}</span>
+              <span className="mono-value text-xs text-gray-500">Vol {formatCompactCurrency(totalVolume)}</span>
             </div>
 
             {isDescriptionEditing ? (
@@ -205,7 +210,7 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
                     if (event.key === 'Escape') onCancelDescription();
                   }}
                   placeholder="Descreva esta categoria"
-                  className="vp-input h-9 min-w-[240px] max-w-[420px] px-3 text-sm"
+                  className="h-9 min-w-[240px] max-w-[420px] rounded-[8px] border border-white/10 bg-[#0f0f1a] px-3 text-sm text-white placeholder:text-gray-500 focus:border-amber-500/50 focus:outline-none"
                   autoFocus
                 />
                 <button
@@ -226,7 +231,7 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
             ) : (
               <button
                 onClick={() => onStartDescriptionEdit(category)}
-                className="mt-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                className="mt-2 text-left text-sm text-gray-300 transition-colors hover:text-white"
               >
                 {category.description || 'Sem descrição'}
               </button>
@@ -252,7 +257,7 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
           </button>
           <button
             onClick={() => onOpenEdit(category)}
-            className="rounded-[8px] border border-[var(--border)] p-2 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            className="rounded-[8px] border border-white/10 p-2 text-gray-300 transition-colors hover:text-white"
             aria-label={`Editar categoria ${category.label}`}
           >
             <Pencil className="h-4 w-4" />
@@ -263,7 +268,7 @@ const SortableCategoryItem: React.FC<SortableCategoryItemProps> = ({
   );
 };
 
-export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBrandTheme = false }) => {
+export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = () => {
   const { isAdmin } = useAdminAccess();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -284,13 +289,6 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
     }),
   );
 
-  const themeClasses = {
-    cardBg: isBrandTheme ? 'bg-gray-800' : 'bg-white',
-    border: isBrandTheme ? 'border-gray-700' : 'border-gray-200',
-    text: isBrandTheme ? 'text-white' : 'text-gray-900',
-    textSecondary: isBrandTheme ? 'text-gray-300' : 'text-gray-600',
-  };
-
   const persistCategories = async (nextCategories: Category[], successMessage?: string) => {
     const ordered = nextCategories
       .map((category, index) => ({ ...category, order: index + 1 }))
@@ -309,59 +307,12 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await api.getCategories();
+        const response = await api.getCategories({ includeInactive: true });
         const items = (response.data || response) as Array<Partial<Category>>;
-
-        if (!items.length) {
-          for (const [index, category] of DEFAULT_CATEGORIES.entries()) {
-            await api.createCategory({
-              key: toCategoryId(category.id),
-              label: category.label,
-              icon: category.icon,
-              description: category.description,
-              color: getDefaultColor(category.label, category.id),
-              active: true,
-              sortOrder: index + 1,
-            });
-          }
-
-          const seededResponse = await api.getCategories();
-          const seeded = (seededResponse.data || seededResponse) as Array<Partial<Category>>;
-          setCategories(
-            seeded
-              .map((category, index) =>
-                normalizeCategory(
-                  {
-                    ...category,
-                    order: category.order ?? (category as any).sortOrder,
-                    marketCount: (category as any).marketCount ?? 0,
-                    totalVolume: (category as any).totalVolume ?? 0,
-                  },
-                  index + 1,
-                ),
-              )
-              .sort((a, b) => a.order - b.order),
-          );
-        } else {
-          setCategories(
-            items
-              .map((category, index) =>
-                normalizeCategory(
-                  {
-                    ...category,
-                    order: category.order ?? (category as any).sortOrder,
-                    marketCount: (category as any).marketCount ?? 0,
-                    totalVolume: (category as any).totalVolume ?? 0,
-                  },
-                  index + 1,
-                ),
-              )
-              .sort((a, b) => a.order - b.order),
-          );
-        }
+        setCategories(mapApiCategories(items));
       } catch (error) {
         console.error(error);
-        toast.error('Erro ao carregar categorias.');
+        toast.error('Erro ao carregar categorias.', { id: 'admin-categories-load-error' });
       } finally {
         setIsLoading(false);
       }
@@ -431,23 +382,9 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
           sortOrder: categories.length + 1,
         });
 
-        const refreshed = await api.getCategories();
+        const refreshed = await api.getCategories({ includeInactive: true });
         const items = (refreshed.data || refreshed) as Array<Partial<Category>>;
-        setCategories(
-          items
-            .map((item, index) =>
-              normalizeCategory(
-                {
-                  ...item,
-                  order: item.order ?? (item as any).sortOrder,
-                  marketCount: (item as any).marketCount ?? 0,
-                  totalVolume: (item as any).totalVolume ?? 0,
-                },
-                index + 1,
-              ),
-            )
-            .sort((a, b) => a.order - b.order),
-        );
+        setCategories(mapApiCategories(items));
         toast.success('Categoria criada com sucesso.');
         closeModal();
       } catch (error) {
@@ -468,23 +405,9 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
           color: modalState.color || current?.color || '#7C3AED',
         });
 
-        const refreshed = await api.getCategories();
+        const refreshed = await api.getCategories({ includeInactive: true });
         const items = (refreshed.data || refreshed) as Array<Partial<Category>>;
-        setCategories(
-          items
-            .map((item, index) =>
-              normalizeCategory(
-                {
-                  ...item,
-                  order: item.order ?? (item as any).sortOrder,
-                  marketCount: (item as any).marketCount ?? 0,
-                  totalVolume: (item as any).totalVolume ?? 0,
-                },
-                index + 1,
-              ),
-            )
-            .sort((a, b) => a.order - b.order),
-        );
+        setCategories(mapApiCategories(items));
         toast.success('Categoria atualizada.');
         closeModal();
       } catch (error) {
@@ -571,30 +494,33 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
 
   if (!isAdmin) {
     return (
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-8 text-center`}>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-8 text-center">
         <div className="text-red-500 mb-4">
           <Zap className="w-16 h-16 mx-auto" />
         </div>
-        <h3 className={`text-xl font-semibold ${themeClasses.text} mb-2`}>Acesso Negado</h3>
-        <p className={themeClasses.textSecondary}>Apenas administradores podem gerenciar categorias.</p>
+        <h3 className="mb-2 text-xl font-semibold text-white">Acesso Negado</h3>
+        <p className="text-gray-400">Apenas administradores podem gerenciar categorias.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-blue-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-amber-600">
               <Settings className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className={`text-xl font-semibold ${themeClasses.text}`}>Gerenciar Categorias</h2>
-              <p className={`text-sm ${themeClasses.textSecondary}`}>Cores, ordem, descrição e visibilidade pública.</p>
+              <h2 className="text-xl font-semibold text-white">Gerenciar Categorias</h2>
+              <p className="text-sm text-gray-400">Cores, ordem, descrição e visibilidade pública.</p>
             </div>
           </div>
-          <button onClick={openCreateModal} className="vp-btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold">
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+          >
             <Plus className="h-4 w-4" /> Nova Categoria
           </button>
         </div>
@@ -602,8 +528,18 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="h-20 animate-pulse rounded-[12px] border border-[var(--border)] bg-[rgba(255,255,255,0.04)]" />
+              <div key={item} className="h-20 animate-pulse rounded-[12px] border border-white/10 bg-[#0f0f1a]" />
             ))}
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="rounded-[12px] border border-white/10 bg-[#0f0f1a] p-8 text-center">
+            <p className="text-sm text-gray-400">Nenhuma categoria cadastrada.</p>
+            <button
+              onClick={openCreateModal}
+              className="mt-4 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+            >
+              Criar categoria
+            </button>
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -633,9 +569,9 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
         )}
       </div>
 
-      <div className="rounded-[12px] border border-[rgba(59,130,246,0.35)] bg-[rgba(59,130,246,0.12)] p-4">
-        <p className="text-sm font-semibold text-[#bfdbfe]">Dica</p>
-        <p className="mt-1 text-xs text-[#93c5fd]">
+      <div className="rounded-[12px] border border-amber-500/25 bg-amber-500/10 p-4">
+        <p className="text-sm font-semibold text-amber-400">Dica</p>
+        <p className="mt-1 text-xs text-amber-300/90">
           Arraste para reordenar, clique na descrição para editar inline e use o toggle para ocultar categorias da listagem pública.
         </p>
       </div>
@@ -676,8 +612,8 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
                       onClick={() => setModalState((prev) => ({ ...prev, icon }))}
                       className={`flex h-9 w-9 items-center justify-center rounded-[8px] border text-sm ${
                         modalState.icon === icon
-                          ? 'border-[rgba(124,58,237,0.65)] bg-[rgba(124,58,237,0.2)]'
-                          : 'border-[var(--border)] bg-[rgba(255,255,255,0.03)]'
+                          ? 'border-amber-500/60 bg-amber-500/15'
+                          : 'border-white/10 bg-[#0f0f1a]'
                       }`}
                     >
                       {icon}
@@ -716,7 +652,7 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
               </div>
             </div>
 
-            <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
+            <div className="mt-4 rounded-[10px] border border-white/10 bg-[#0f0f1a] p-3">
               <p className="mb-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
                 <Palette className="h-3.5 w-3.5" /> Preview
               </p>
@@ -732,10 +668,16 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={closeModal} className="vp-btn-ghost px-4 py-2 text-sm font-semibold">
+              <button
+                onClick={closeModal}
+                className="rounded-[8px] border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/10"
+              >
                 Cancelar
               </button>
-              <button onClick={saveModal} className="vp-btn-primary px-4 py-2 text-sm font-semibold">
+              <button
+                onClick={saveModal}
+                className="rounded-[8px] bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
+              >
                 Salvar
               </button>
             </div>
@@ -752,7 +694,10 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = ({ isBr
             </p>
             <p className="mt-2 text-sm text-[var(--text-muted)]">Categoria: {pendingDeactivation.label}</p>
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setPendingDeactivation(null)} className="vp-btn-ghost px-4 py-2 text-sm font-semibold">
+              <button
+                onClick={() => setPendingDeactivation(null)}
+                className="rounded-[8px] border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/10"
+              >
                 Cancelar
               </button>
               <button

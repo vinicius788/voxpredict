@@ -45,30 +45,25 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between gap-4">
           <button
             onClick={() => navigate('/')}
-            className="group flex items-center gap-3 transition-opacity hover:opacity-90"
+            className="group flex items-center gap-2.5 transition-opacity hover:opacity-90"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-[var(--shadow-brand)]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+              <img
+                src="/branding/voxpredict-icon.png"
+                alt="VoxPredict ícone"
+                className="h-8 w-8 object-contain"
+                loading="eager"
+                decoding="async"
+              />
             </span>
-            <div className="text-left">
-              <div className="font-[var(--font-display)] text-lg font-semibold leading-none text-[var(--text-primary)]">
-                VoxPredict
-              </div>
-              <div className="text-xs text-[var(--text-secondary)]">Mercados preditivos LATAM</div>
-            </div>
+            <img
+              src="/branding/voxpredict-logo.png"
+              alt="VoxPredict"
+              className="h-7 w-auto max-w-[160px] object-contain sm:h-8 sm:max-w-[180px]"
+              loading="eager"
+              decoding="async"
+            />
+            <span className="sr-only">VoxPredict</span>
             {isAdminArea && (
               <span className="vp-badge-pulse animate-pulse rounded-[999px] border border-[#fbbf24] bg-[#f59e0b] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1f2937]">
                 Admin
@@ -98,7 +93,7 @@ export const Header: React.FC = () => {
           <div className="hidden items-center gap-2 lg:flex">
             <AuthButton />
             {isSignedIn && <NotificationCenter />}
-            {isSignedIn && <ConnectWalletButton />}
+            <ConnectWalletButton />
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
@@ -159,12 +154,10 @@ export const Header: React.FC = () => {
 
           <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4">
             <AuthButton />
-            {isSignedIn && (
-              <div className="flex items-center justify-between gap-2">
-                <NotificationCenter />
-                <ConnectWalletButton />
-              </div>
-            )}
+            <div className="flex items-center justify-between gap-2">
+              {isSignedIn && <NotificationCenter />}
+              <ConnectWalletButton />
+            </div>
           </div>
         </aside>
       </div>

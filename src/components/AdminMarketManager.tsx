@@ -25,24 +25,30 @@ const categoryBadgeColors: Record<string, string> = {
 
 const getStatusStyles = (status: string) => {
   if (status === 'active') {
-    return { label: 'Ativo', classes: 'bg-[rgba(16,185,129,0.2)] text-[#6ee7b7]' };
+    return { label: 'Ativo', classes: 'bg-green-500/20 text-green-400' };
   }
   if (status === 'resolved') {
-    return { label: 'Finalizado', classes: 'bg-[rgba(148,163,184,0.22)] text-[#cbd5e1]' };
+    return { label: 'Resolvido', classes: 'bg-blue-500/20 text-blue-400' };
   }
   if (status === 'pending') {
-    return { label: 'Pendente', classes: 'bg-[rgba(245,158,11,0.2)] text-[#fcd34d]' };
+    return { label: 'Pendente', classes: 'bg-amber-500/20 text-amber-400' };
   }
   if (status === 'closed') {
-    return { label: 'Arquivado', classes: 'bg-[rgba(148,163,184,0.22)] text-[#cbd5e1]' };
+    return { label: 'Cancelado', classes: 'bg-red-500/20 text-red-400' };
   }
-  return { label: status, classes: 'bg-[rgba(245,158,11,0.2)] text-[#fcd34d]' };
+  return { label: status, classes: 'bg-gray-500/20 text-gray-300' };
 };
 
-export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandTheme = false }) => {
+export const AdminMarketManager: React.FC<AdminMarketManagerProps> = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAdminAccess();
-  const { data: marketsResponse, refetch } = useMarkets({ limit: 200 });
+  const {
+    data: marketsResponse,
+    refetch,
+    isLoading,
+    isError,
+    error,
+  } = useMarkets({ limit: 200, includeAll: true });
   const { mutateAsync: resolveMarket } = useResolveMarket();
 
   const [search, setSearch] = useState('');
@@ -52,13 +58,6 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
   const [selectedMarketIds, setSelectedMarketIds] = useState<string[]>([]);
   const [editingMarket, setEditingMarket] = useState<EditableMarket | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-
-  const themeClasses = {
-    cardBg: isBrandTheme ? 'bg-gray-800' : 'bg-white',
-    text: isBrandTheme ? 'text-white' : 'text-gray-900',
-    textSecondary: isBrandTheme ? 'text-gray-300' : 'text-gray-600',
-    border: isBrandTheme ? 'border-gray-700' : 'border-gray-200',
-  };
 
   const allMarkets = useMemo(() => marketsResponse?.markets || [], [marketsResponse?.markets]);
 
@@ -178,28 +177,28 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
 
   if (!isAdmin) {
     return (
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-8 text-center`}>
-        <p className={themeClasses.textSecondary}>Apenas administradores podem gerenciar mercados.</p>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-8 text-center">
+        <p className="text-gray-400">Apenas administradores podem gerenciar mercados.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white flex items-center justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white">
             <Settings className="w-5 h-5" />
           </div>
           <div>
-            <h2 className={`text-xl font-semibold ${themeClasses.text}`}>Gerenciar Mercados</h2>
-            <p className={`text-sm ${themeClasses.textSecondary}`}>Filtros, ações em lote e gestão operacional.</p>
+            <h2 className="text-xl font-semibold text-white">Gerenciar Mercados</h2>
+            <p className="text-sm text-gray-400">Filtros, ações em lote e gestão operacional.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <label className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
               value={search}
               onChange={(event) => {
@@ -207,7 +206,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                 setCurrentPage(1);
               }}
               placeholder="Buscar por texto"
-              className="vp-input h-10 pl-10 pr-3 text-sm"
+              className="h-10 w-full rounded-lg border border-white/10 bg-[#0f0f1a] pl-10 pr-3 text-sm text-white placeholder:text-gray-500 focus:border-amber-500/50 focus:outline-none"
             />
           </label>
 
@@ -217,12 +216,12 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
               setStatusFilter(event.target.value as typeof statusFilter);
               setCurrentPage(1);
             }}
-            className="vp-input h-10 px-3 text-sm"
+            className="h-10 rounded-lg border border-white/10 bg-[#0f0f1a] px-3 text-sm text-gray-300 focus:border-amber-500/50 focus:outline-none"
           >
             <option value="all">Status: Todos</option>
             <option value="active">Ativo</option>
-            <option value="resolved">Finalizado</option>
-            <option value="closed">Arquivado</option>
+            <option value="resolved">Resolvido</option>
+            <option value="closed">Cancelado</option>
           </select>
 
           <select
@@ -231,7 +230,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
               setCategoryFilter(event.target.value);
               setCurrentPage(1);
             }}
-            className="vp-input h-10 px-3 text-sm"
+            className="h-10 rounded-lg border border-white/10 bg-[#0f0f1a] px-3 text-sm text-gray-300 focus:border-amber-500/50 focus:outline-none"
           >
             {categories.map((category) => (
               <option key={category} value={category}>
@@ -242,8 +241,26 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
         </div>
       </div>
 
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
-        {filteredMarkets.length === 0 ? (
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="h-16 animate-pulse rounded-[10px] border border-white/10 bg-[#0f0f1a]" />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="rounded-[10px] border border-red-500/30 bg-red-500/10 p-4">
+            <p className="text-sm text-red-300">
+              Falha ao carregar mercados{error instanceof Error ? `: ${error.message}` : '.'}
+            </p>
+            <button
+              onClick={() => void refetch()}
+              className="mt-3 rounded-[8px] bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-amber-400"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : filteredMarkets.length === 0 ? (
           <div className="text-center py-12">
             <svg viewBox="0 0 180 120" className="mx-auto h-24 w-36" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="1" y="1" width="178" height="118" rx="16" stroke="rgba(255,255,255,0.08)" />
@@ -251,13 +268,13 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
               <path d="M74 60H106" stroke="rgba(167,139,250,0.45)" strokeWidth="2" />
               <path d="M90 46V74" stroke="rgba(167,139,250,0.45)" strokeWidth="2" />
             </svg>
-            <h3 className={`mt-4 text-lg font-semibold ${themeClasses.text}`}>Nenhum mercado encontrado</h3>
-            <p className={`mt-1 text-sm ${themeClasses.textSecondary}`}>Crie o primeiro mercado da plataforma.</p>
+            <h3 className="mt-4 text-lg font-semibold text-white">Nenhum mercado encontrado</h3>
+            <p className="mt-1 text-sm text-gray-400">Crie o primeiro mercado da plataforma.</p>
             <button
               onClick={() => {
                 navigate({ pathname: '/admin', search: '?tab=create', hash: '#create' });
               }}
-              className="vp-btn-primary mt-5 px-5 py-2.5 text-sm font-semibold"
+              className="mt-5 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400"
             >
               Criar primeiro mercado
             </button>
@@ -265,7 +282,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <div className="text-sm text-[var(--text-secondary)]">{filteredMarkets.length} mercados encontrados</div>
+              <div className="text-sm text-gray-300">{filteredMarkets.length} mercados encontrados</div>
               <button
                 onClick={resolveSelected}
                 disabled={!selectedMarketIds.length}
@@ -275,9 +292,9 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-[10px] border border-[var(--border)]">
+            <div className="overflow-x-auto rounded-[10px] border border-white/10">
               <table className="w-full min-w-[960px] border-collapse text-sm">
-                <thead className="bg-[rgba(255,255,255,0.04)] text-left text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <thead className="bg-[#0f0f1a] text-left text-xs uppercase tracking-[0.08em] text-gray-500">
                   <tr>
                     <th className="px-3 py-2.5"><input type="checkbox" checked={selectedMarketIds.length === paginatedMarkets.length && paginatedMarkets.length > 0} onChange={toggleSelectAll} /></th>
                     <th className="px-3 py-2.5">ID</th>
@@ -292,10 +309,10 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                 </thead>
                 <tbody>
                   {paginatedMarkets.map((market) => (
-                    <tr key={market.id} className="border-t border-[var(--border)] hover:bg-[rgba(255,255,255,0.03)]">
+                    <tr key={market.id} className="border-t border-white/10 hover:bg-white/5">
                       <td className="px-3 py-2.5"><input type="checkbox" checked={selectedMarketIds.includes(market.id)} onChange={() => toggleSelection(market.id)} /></td>
-                      <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">{market.id}</td>
-                      <td className="px-3 py-2.5 text-[var(--text-primary)] max-w-[280px] line-clamp-2">{market.title}</td>
+                      <td className="mono-value px-3 py-2.5 text-gray-300">{market.id}</td>
+                      <td className="max-w-[280px] line-clamp-2 px-3 py-2.5 text-white">{market.title}</td>
                       <td className="px-3 py-2.5">
                         <span
                           className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${
@@ -305,17 +322,17 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                           {market.category}
                         </span>
                       </td>
-                      <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">${market.totalVolume.toFixed(0)}</td>
-                      <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">{market.totalBettors}</td>
+                      <td className="mono-value px-3 py-2.5 text-gray-300">${market.totalVolume.toFixed(0)}</td>
+                      <td className="mono-value px-3 py-2.5 text-gray-300">{market.totalBettors}</td>
                       <td className="px-3 py-2.5">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${getStatusStyles(market.status).classes}`}>
                           {getStatusStyles(market.status).label}
                         </span>
                       </td>
-                      <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">{new Date(market.endDate).toLocaleDateString('pt-BR')}</td>
+                      <td className="mono-value px-3 py-2.5 text-gray-300">{new Date(market.endDate).toLocaleDateString('pt-BR')}</td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => navigate(`/market/${market.id}`, { state: { market } })} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Ver"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => navigate(`/market/${market.id}`, { state: { market } })} className="p-1.5 text-gray-300 hover:text-white" title="Ver"><Eye className="w-4 h-4" /></button>
                           <button
                             onClick={() =>
                               setEditingMarket({
@@ -325,7 +342,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                                 endDate: toDatetimeLocal(market.endDate),
                               })
                             }
-                            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            className="p-1.5 text-gray-300 hover:text-white"
                             title="Editar"
                           >
                             <Edit className="w-4 h-4" />
@@ -341,19 +358,19 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
             </div>
 
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs text-[var(--text-secondary)]">Página {currentPage} de {totalPages}</p>
+              <p className="text-xs text-gray-300">Página {currentPage} de {totalPages}</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                   disabled={currentPage === 1}
-                  className="rounded-[8px] border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] disabled:opacity-50"
+                  className="rounded-[8px] border border-white/10 px-3 py-1.5 text-xs text-gray-300 disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                   disabled={currentPage === totalPages}
-                  className="rounded-[8px] border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] disabled:opacity-50"
+                  className="rounded-[8px] border border-white/10 px-3 py-1.5 text-xs text-gray-300 disabled:opacity-50"
                 >
                   Próximo
                 </button>
@@ -376,7 +393,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                   onChange={(event) =>
                     setEditingMarket((prev) => (prev ? { ...prev, title: event.target.value } : prev))
                   }
-                  className="vp-input h-11 px-3 text-sm"
+                  className="h-11 w-full rounded-[8px] border border-white/10 bg-[#0f0f1a] px-3 text-sm text-white placeholder:text-gray-500 focus:border-amber-500/50 focus:outline-none"
                 />
               </div>
 
@@ -387,7 +404,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                   onChange={(event) =>
                     setEditingMarket((prev) => (prev ? { ...prev, description: event.target.value } : prev))
                   }
-                  className="vp-input min-h-[110px] px-3 py-2 text-sm"
+                  className="min-h-[110px] w-full rounded-[8px] border border-white/10 bg-[#0f0f1a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-amber-500/50 focus:outline-none"
                 />
               </div>
 
@@ -399,7 +416,7 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
                   onChange={(event) =>
                     setEditingMarket((prev) => (prev ? { ...prev, endDate: event.target.value } : prev))
                   }
-                  className="vp-input h-11 px-3 text-sm"
+                  className="h-11 w-full rounded-[8px] border border-white/10 bg-[#0f0f1a] px-3 text-sm text-white focus:border-amber-500/50 focus:outline-none"
                 />
               </div>
             </div>
@@ -408,14 +425,14 @@ export const AdminMarketManager: React.FC<AdminMarketManagerProps> = ({ isBrandT
               <button
                 onClick={handleSaveEdit}
                 disabled={isSavingEdit}
-                className="vp-btn-primary w-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+                className="w-full rounded-[8px] bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-400 disabled:opacity-60"
               >
                 {isSavingEdit ? 'Salvando...' : 'Salvar'}
               </button>
               <button
                 onClick={() => setEditingMarket(null)}
                 disabled={isSavingEdit}
-                className="vp-btn-ghost w-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+                className="w-full rounded-[8px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-60"
               >
                 Cancelar
               </button>

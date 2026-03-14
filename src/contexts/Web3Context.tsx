@@ -36,9 +36,15 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
 
   const connectWallet = async () => {
     try {
-      const injectedConnector = connectors.find((connector) => connector.type === 'injected');
-      const fallbackConnector = connectors[0];
-      const connector = injectedConnector || fallbackConnector;
+      const preferredConnectorId =
+        typeof window !== 'undefined' ? window.localStorage.getItem('preferred_wallet_connector') : null;
+
+      const preferredConnector = preferredConnectorId
+        ? connectors.find((connector) => connector.id === preferredConnectorId && (connector as any).ready !== false)
+        : undefined;
+
+      const readyConnector = connectors.find((connector) => (connector as any).ready !== false);
+      const connector = preferredConnector || readyConnector || connectors[0];
 
       if (!connector) {
         toast.error('Nenhuma carteira disponível para conexão.');
@@ -46,6 +52,9 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
       }
 
       await connectAsync({ connector });
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('preferred_wallet_connector', connector.id);
+      }
       toast.success('Carteira conectada com sucesso!');
     } catch (error) {
       console.error('Error connecting wallet:', error);

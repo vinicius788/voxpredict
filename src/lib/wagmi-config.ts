@@ -1,5 +1,6 @@
 import { createConfig, http } from 'wagmi';
 import { injected, walletConnect } from 'wagmi/connectors';
+import { coinbaseWallet } from 'wagmi/connectors';
 import { polygon, polygonAmoy } from 'wagmi/chains';
 
 const chainId = Number(import.meta.env.VITE_CHAIN_ID || 80002);
@@ -11,15 +12,19 @@ const amoyRpc =
   import.meta.env.VITE_POLYGON_RPC_URL ||
   'https://rpc-amoy.polygon.technology';
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo';
+const appName = import.meta.env.VITE_APP_NAME || 'VoxPredict';
 
 export const wagmiConfig = createConfig({
   chains: [activeChain],
   connectors: [
     injected({ target: 'metaMask' }),
+    coinbaseWallet({
+      appName,
+    }),
     walletConnect({
       projectId: walletConnectProjectId,
       metadata: {
-        name: 'VoxPredict',
+        name: appName,
         description: 'Mercados preditivos descentralizados',
         url: typeof window !== 'undefined' ? window.location.origin : 'https://voxpredict.com',
         icons: [],

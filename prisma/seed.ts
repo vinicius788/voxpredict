@@ -21,7 +21,7 @@ const seedMarkets = [
     id: 2,
     question: 'Congresso vai aprovar reforma tributária até dezembro de 2026?',
     description: 'Resolução baseada na publicação oficial no Diário Oficial e comunicados do Congresso.',
-    category: 'política',
+    category: 'politica',
     endTime: new Date('2026-12-30T00:00:00.000Z'),
     status: 'ACTIVE' as const,
     totalVolume: 157000,
@@ -45,23 +45,125 @@ const seedMarkets = [
     token: 'USDC',
     contractAddress: 'offchain-3',
   },
+  {
+    id: 4,
+    question: 'Brasil vai se classificar para a final da Copa América 2028?',
+    description: 'Mercado esportivo com resolução baseada no resultado oficial da competição.',
+    category: 'esportes',
+    endTime: new Date('2028-07-15T00:00:00.000Z'),
+    status: 'ACTIVE' as const,
+    totalVolume: 93450,
+    totalYes: 45200,
+    totalNo: 48250,
+    participants: 291,
+    token: 'USDT',
+    contractAddress: 'offchain-4',
+  },
+  {
+    id: 5,
+    question: 'A OpenAI vai lançar um novo modelo multimodal flagship até setembro de 2026?',
+    description: 'Mercado de tecnologia com resolução por anúncio oficial público e documentação de produto.',
+    category: 'tecnologia',
+    endTime: new Date('2026-09-30T00:00:00.000Z'),
+    status: 'RESOLVED' as const,
+    outcome: 'YES',
+    resolvedAt: new Date('2026-10-01T10:00:00.000Z'),
+    totalVolume: 128900,
+    totalYes: 76850,
+    totalNo: 52050,
+    participants: 349,
+    token: 'USDT',
+    contractAddress: 'offchain-5',
+  },
+  {
+    id: 6,
+    question: 'Inflação IPCA anual ficará abaixo de 4% em 2026?',
+    description: 'Resolução com base no valor oficial divulgado pelo IBGE ao fim de 2026.',
+    category: 'economia',
+    endTime: new Date('2026-12-31T00:00:00.000Z'),
+    status: 'CANCELLED' as const,
+    outcome: 'CANCELLED',
+    resolvedAt: new Date('2026-11-20T12:00:00.000Z'),
+    totalVolume: 68420,
+    totalYes: 35200,
+    totalNo: 33220,
+    participants: 187,
+    token: 'USDC',
+    contractAddress: 'offchain-6',
+  },
 ];
 
 const seedCategories = [
-  { key: 'politica', label: 'Política', icon: '🏛️', color: '#3B82F6', description: 'Eventos políticos, eleições e governos', sortOrder: 1 },
-  { key: 'cripto', label: 'Cripto', icon: '₿', color: '#F97316', description: 'Mercados de criptomoedas e blockchain', sortOrder: 2 },
-  { key: 'esportes', label: 'Esportes', icon: '⚽', color: '#EF4444', description: 'Eventos esportivos e competições', sortOrder: 3 },
-  { key: 'tecnologia', label: 'Tecnologia', icon: '💻', color: '#8B5CF6', description: 'Inovações tecnológicas e lançamentos', sortOrder: 4 },
-  { key: 'economia', label: 'Economia', icon: '📈', color: '#10B981', description: 'Indicadores econômicos e mercados financeiros', sortOrder: 5 },
-  { key: 'entretenimento', label: 'Entretenimento', icon: '🎬', color: '#EC4899', description: 'Cinema, música e cultura pop', sortOrder: 6 },
-  { key: 'geopolitica', label: 'Geopolítica', icon: '🌍', color: '#F59E0B', description: 'Relações internacionais e conflitos globais', sortOrder: 7 },
-  { key: 'negocios', label: 'Negócios', icon: '💼', color: '#06B6D4', description: 'Empresas, startups e mercado corporativo', sortOrder: 8 },
-  { key: 'ciencia', label: 'Ciência', icon: '🔬', color: '#6366F1', description: 'Descobertas científicas e pesquisas', sortOrder: 9 },
+  { key: 'politica', label: 'Política', icon: '🏛️', color: '#6366F1', description: 'Eleições, governos e decisões institucionais', sortOrder: 1, active: true },
+  { key: 'cripto', label: 'Cripto', icon: '₿', color: '#F59E0B', description: 'Criptoativos, blockchain e ecossistema Web3', sortOrder: 2, active: true },
+  { key: 'esportes', label: 'Esportes', icon: '⚽', color: '#10B981', description: 'Eventos esportivos e competições internacionais', sortOrder: 3, active: true },
+  { key: 'economia', label: 'Economia', icon: '📈', color: '#3B82F6', description: 'Indicadores macroeconômicos e política monetária', sortOrder: 4, active: true },
+  { key: 'tecnologia', label: 'Tecnologia', icon: '💻', color: '#8B5CF6', description: 'Inovação, produtos e movimentos de big tech', sortOrder: 5, active: true },
+  { key: 'geopolitica', label: 'Geopolítica', icon: '🌎', color: '#EF4444', description: 'Relações internacionais, conflitos e acordos globais', sortOrder: 6, active: true },
+];
+
+const marketTemplates = [
+  {
+    name: 'BTC Mensal',
+    titleTemplate: 'O Bitcoin vai fechar acima de ${{btc_target}} em {{month_year}}?',
+    descTemplate: 'Resolução baseada no fechamento mensal do BTC em fonte pública confiável.',
+    category: 'cripto',
+    frequency: 'MONTHLY' as const,
+    variables: { btc_target: 'auto_btc_110pct', month_year: 'auto_next_month' },
+  },
+  {
+    name: 'Selic Trimestral',
+    titleTemplate: 'O Copom vai cortar a Selic em {{meeting_date}}?',
+    descTemplate: 'Resolução com base no comunicado oficial do Banco Central após a reunião do Copom.',
+    category: 'economia',
+    frequency: 'QUARTERLY' as const,
+    variables: { meeting_date: 'auto_next_copom' },
+  },
+  {
+    name: 'ETH Mensal',
+    titleTemplate: 'O Ethereum vai superar ${{eth_target}} até o fim de {{month_year}}?',
+    descTemplate: 'Resultado confirmado pelo preço de fechamento mensal do ETH em fonte pública.',
+    category: 'cripto',
+    frequency: 'MONTHLY' as const,
+    variables: { eth_target: 'auto_eth_110pct', month_year: 'auto_next_month' },
+  },
+  {
+    name: 'Ibovespa Mensal',
+    titleTemplate: 'O Ibovespa vai fechar acima de {{ibov_target}} pontos em {{month_year}}?',
+    descTemplate: 'Resolução baseada no fechamento mensal oficial do índice Ibovespa.',
+    category: 'economia',
+    frequency: 'MONTHLY' as const,
+    variables: { ibov_target: 'auto_ibov_102pct', month_year: 'auto_next_month' },
+  },
 ];
 
 const randomBetween = (min: number, max: number) => Math.random() * (max - min) + min;
 
 async function seed() {
+  await prisma.position.deleteMany({
+    where: {
+      marketId: { notIn: seedMarkets.map((market) => market.id) },
+    },
+  });
+
+  await prisma.probabilitySnapshot.deleteMany({
+    where: {
+      marketId: { notIn: seedMarkets.map((market) => market.id) },
+    },
+  });
+
+  await prisma.market.deleteMany({
+    where: {
+      id: { notIn: seedMarkets.map((market) => market.id) },
+    },
+  });
+
+  await prisma.category.deleteMany({
+    where: {
+      key: { notIn: seedCategories.map((category) => category.key) },
+    },
+  });
+
   for (const category of seedCategories) {
     await prisma.category.upsert({
       where: { key: category.key },
@@ -99,6 +201,26 @@ async function seed() {
         },
       });
     }
+  }
+
+  for (const template of marketTemplates) {
+    await prisma.marketTemplate.upsert({
+      where: { name: template.name },
+      update: {
+        titleTemplate: template.titleTemplate,
+        descTemplate: template.descTemplate,
+        category: template.category,
+        frequency: template.frequency,
+        variables: template.variables,
+        active: true,
+      },
+      create: {
+        ...template,
+        minBet: 5,
+        maxBet: 1000,
+        active: true,
+      },
+    });
   }
 }
 

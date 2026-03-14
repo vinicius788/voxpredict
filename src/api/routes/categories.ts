@@ -53,29 +53,39 @@ const buildMetricsMap = async () => {
   return map;
 };
 
-router.get('/', authenticate, requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
+    const includeInactive = req.query.includeInactive === 'true';
     const [categories, metricsMap] = await Promise.all([
       prisma.category.findMany({
+        where: includeInactive ? {} : { active: true },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       }),
       buildMetricsMap(),
     ]);
 
+    const mapped = categories.map((category) => {
+      const metrics = metricsMap.get(category.key) || { count: 0, totalVolume: 0 };
+      return {
+        ...category,
+        marketCount: metrics.count,
+        totalVolume: Number(metrics.totalVolume.toFixed(2)),
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      data: categories.map((category) => {
-        const metrics = metricsMap.get(category.key) || { count: 0, totalVolume: 0 };
-        return {
-          ...category,
-          marketCount: metrics.count,
-          totalVolume: Number(metrics.totalVolume.toFixed(2)),
-        };
-      }),
+      data: mapped,
+      categories: mapped,
     });
   } catch (error) {
     console.error('Error listing categories:', error);
-    return res.status(500).json({ success: false, error: 'Failed to list categories' });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao carregar categorias',
+      data: [],
+      categories: [],
+    });
   }
 });
 

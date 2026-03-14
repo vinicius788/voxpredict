@@ -20,6 +20,8 @@ router.get('/stats', authenticate, requireAdmin, async (_req: AuthenticatedReque
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const platformFeeRate = 0.03;
 
     const [
       activeMarkets,
@@ -27,28 +29,37 @@ router.get('/stats', authenticate, requireAdmin, async (_req: AuthenticatedReque
       totalMarkets,
       resolvedMarkets,
       totalPositions,
-      totalVolumeAgg,
-      totalRevenueAgg,
+      totalMarketVolumeAgg,
       volume24hAgg,
       dailyRevenueAgg,
+      weeklyRevenueAgg,
+      monthlyRevenueAgg,
       newUsersToday,
       pendingBets,
       thisWeekUsers,
       lastWeekUsers,
+      categoryVolumeRows,
     ] = await Promise.all([
       prisma.market.count({ where: { status: 'ACTIVE' } }),
       prisma.user.count(),
       prisma.market.count(),
       prisma.market.count({ where: { status: 'RESOLVED' } }),
       prisma.position.count(),
-      prisma.position.aggregate({ _sum: { amount: true } }),
-      prisma.position.aggregate({ _sum: { amount: true } }),
+      prisma.market.aggregate({ _sum: { totalVolume: true } }),
       prisma.position.aggregate({
         where: { createdAt: { gte: oneDayAgo } },
         _sum: { amount: true },
       }),
       prisma.position.aggregate({
         where: { createdAt: { gte: startOfToday } },
+        _sum: { amount: true },
+      }),
+      prisma.position.aggregate({
+        where: { createdAt: { gte: sevenDaysAgo } },
+        _sum: { amount: true },
+      }),
+      prisma.position.aggregate({
+        where: { createdAt: { gte: thirtyDaysAgo } },
         _sum: { amount: true },
       }),
       prisma.user.count({
@@ -66,31 +77,69 @@ router.get('/stats', authenticate, requireAdmin, async (_req: AuthenticatedReque
       prisma.user.count({
         where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
       }),
+      prisma.market.groupBy({
+        by: ['category'],
+        _sum: { totalVolume: true },
+      }),
     ]);
 
-    const totalVolume = toNumber(totalVolumeAgg._sum.amount);
-    const totalRevenue = (toNumber(totalRevenueAgg._sum.amount) * 300) / 10000;
+    const normalizeCategory = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const totalVolume = toNumber(totalMarketVolumeAgg._sum.totalVolume);
+    const totalRevenue = totalVolume * platformFeeRate;
     const volume24h = toNumber(volume24hAgg._sum.amount);
-    const dailyRevenue = (toNumber(dailyRevenueAgg._sum.amount) * 300) / 10000;
+    const revenueToday = toNumber(dailyRevenueAgg._sum.amount) * platformFeeRate;
+    const revenueWeek = toNumber(weeklyRevenueAgg._sum.amount) * platformFeeRate;
+    const revenueMonth = toNumber(monthlyRevenueAgg._sum.amount) * platformFeeRate;
     const userGrowthPercent =
       lastWeekUsers > 0 ? Number((((thisWeekUsers - lastWeekUsers) / lastWeekUsers) * 100).toFixed(1)) : 0;
 
+    const categoryVolumeTotal = categoryVolumeRows.reduce(
+      (sum, row) => sum + toNumber(row._sum.totalVolume),
+      0,
+    );
+
+    const getCategoryShare = (...targets: string[]) => {
+      if (!categoryVolumeTotal) return 0;
+      const targetSet = new Set(targets.map((target) => normalizeCategory(target)));
+      const categoryVolume = categoryVolumeRows.reduce((sum, row) => {
+        const normalized = normalizeCategory(row.category);
+        return targetSet.has(normalized) ? sum + toNumber(row._sum.totalVolume) : sum;
+      }, 0);
+      return Number(((categoryVolume / categoryVolumeTotal) * 100).toFixed(1));
+    };
+
+    const statsPayload = {
+      activeMarkets: Number(activeMarkets ?? 0),
+      totalUsers: Number(totalUsers ?? 0),
+      totalMarkets: Number(totalMarkets ?? 0),
+      totalPositions: Number(totalPositions ?? 0),
+      totalVolume: Number(totalVolume.toFixed(2)),
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      dailyRevenue: Number(revenueToday.toFixed(2)),
+      resolvedMarkets: Number(resolvedMarkets ?? 0),
+      volume24h: Number(volume24h.toFixed(2)),
+      newUsersToday: Number(newUsersToday ?? 0),
+      pendingBets: Number(pendingBets ?? 0),
+      userGrowthPercent,
+      revenueToday: Number(revenueToday.toFixed(2)),
+      revenueWeek: Number(revenueWeek.toFixed(2)),
+      revenueMonth: Number(revenueMonth.toFixed(2)),
+      revenueTotal: Number(totalRevenue.toFixed(2)),
+      projectedRevenue: Number(totalRevenue.toFixed(2)),
+      cryptoShare: getCategoryShare('cripto'),
+      politicsShare: getCategoryShare('politica', 'política'),
+      economyShare: getCategoryShare('economia'),
+    };
+
     return res.status(200).json({
       success: true,
-      data: {
-        activeMarkets,
-        totalUsers,
-        totalMarkets,
-        totalPositions,
-        totalVolume,
-        totalRevenue: Number(totalRevenue.toFixed(2)),
-        dailyRevenue: Number(dailyRevenue.toFixed(2)),
-        resolvedMarkets,
-        volume24h: Number(volume24h.toFixed(2)),
-        newUsersToday,
-        pendingBets,
-        userGrowthPercent,
-      },
+      data: statsPayload,
+      stats: statsPayload,
     });
   } catch (error) {
     console.error('Error fetching admin stats:', error);

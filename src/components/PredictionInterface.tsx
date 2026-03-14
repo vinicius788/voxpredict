@@ -28,6 +28,13 @@ const toCurrency = (value: number) =>
     maximumFractionDigits: 2,
   });
 
+const parsePool = (value: number | undefined) => {
+  if (value === undefined || value === null) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+};
+
 const calculateMultiplier = (totalYes: number, totalNo: number, side: 'YES' | 'NO') => {
   const winningPool = side === 'YES' ? totalYes : totalNo;
   const losingPool = side === 'YES' ? totalNo : totalYes;
@@ -63,14 +70,18 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const position = useUserPosition(isValidMarketId ? marketId : 0, effectiveToken);
 
   const totalYes = useMemo(() => {
+    const direct = parsePool(market.totalYes) ?? parsePool(market.yesPool);
+    if (direct !== null) return direct;
     if (market.totalVolume <= 0) return 0;
     return (market.totalVolume * market.simProbability) / 100;
-  }, [market.simProbability, market.totalVolume]);
+  }, [market.simProbability, market.totalVolume, market.totalYes, market.yesPool]);
 
   const totalNo = useMemo(() => {
+    const direct = parsePool(market.totalNo) ?? parsePool(market.noPool);
+    if (direct !== null) return direct;
     if (market.totalVolume <= 0) return 0;
     return (market.totalVolume * market.naoProbability) / 100;
-  }, [market.naoProbability, market.totalVolume]);
+  }, [market.naoProbability, market.totalVolume, market.totalNo, market.noPool]);
 
   const isClosed = market.status !== 'active' || new Date(market.endDate).getTime() <= Date.now();
   const outcome = (market.outcome || '').toUpperCase();
@@ -79,9 +90,15 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
   const yesMultiplier = calculateMultiplier(totalYes, totalNo, 'YES');
   const noMultiplier = calculateMultiplier(totalYes, totalNo, 'NO');
+  const totalPool = totalYes + totalNo;
+  const yesProbability = totalPool > 0 ? (totalYes / totalPool) * 100 : market.simProbability;
+  const noProbability = totalPool > 0 ? (totalNo / totalPool) * 100 : market.naoProbability;
 
   const normalizedAmount = clampAmount(Number(amount), balanceNumber);
   const potentialReturn = side ? calculateReturn(normalizedAmount, side, totalYes, totalNo) : 0;
+  const selectedMultiplier = side === 'YES' ? yesMultiplier : side === 'NO' ? noMultiplier : 0;
+  const impliedProbability = selectedMultiplier > 0 ? (1 / selectedMultiplier) * 100 : 0;
+  const potentialProfit = Math.max(0, potentialReturn - normalizedAmount);
   const isWrongNetwork = isWalletConnected && Boolean(chainId && chainId !== expectedChainId);
   const chainName = expectedChainId === 137 ? 'Polygon Mainnet' : 'Polygon Amoy (Testnet)';
 
@@ -258,7 +275,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
             </span>
             <span className="mono-value text-sm font-bold text-[#fbbf24]">{yesMultiplier.toFixed(2)}x</span>
           </div>
-          <p className="mono-value mt-1 text-xs text-[var(--text-secondary)]">{market.simProbability.toFixed(1)}% prob.</p>
+          <p className="mono-value mt-1 text-xs text-[var(--text-secondary)]">{yesProbability.toFixed(1)}% prob.</p>
         </button>
 
         <button
@@ -275,7 +292,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
             </span>
             <span className="mono-value text-sm font-bold text-[#fbbf24]">{noMultiplier.toFixed(2)}x</span>
           </div>
-          <p className="mono-value mt-1 text-xs text-[var(--text-secondary)]">{market.naoProbability.toFixed(1)}% prob.</p>
+          <p className="mono-value mt-1 text-xs text-[var(--text-secondary)]">{noProbability.toFixed(1)}% prob.</p>
         </button>
       </div>
 
@@ -319,12 +336,16 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
           {normalizedAmount > 0 && (
             <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(124,58,237,0.12)] p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Retorno potencial</p>
-              <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">
-                Se {side === 'YES' ? 'SIM' : 'NÃO'} ganhar → você recebe ${toCurrency(potentialReturn)}
+              <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Projeção da aposta</p>
+              <p className="mono-value mt-1 text-sm text-[var(--text-secondary)]">
+                Multiplicador atual: <span className="font-semibold text-[#fbbf24]">{selectedMultiplier.toFixed(2)}x</span>{' '}
+                · {impliedProbability.toFixed(1)}% prob. implícita
               </p>
-              <p className="mono-value mt-1 text-xs text-[#6ee7b7]">
-                +{(((potentialReturn / normalizedAmount) - 1) * 100).toFixed(1)}%
+              <p className="mono-value mt-2 text-lg font-semibold text-[var(--text-primary)]">
+                Ganho potencial: ${toCurrency(potentialReturn)}
+              </p>
+              <p className="mono-value mt-1 text-sm text-[#6ee7b7]">
+                Lucro potencial: +${toCurrency(potentialProfit)}
               </p>
             </div>
           )}

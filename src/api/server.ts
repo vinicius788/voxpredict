@@ -7,9 +7,10 @@ import dotenv from 'dotenv';
 import { Resend } from 'resend';
 import apiRoutes from './routes';
 import { requestLogger, errorLogger } from './middleware/logging';
-import { apiKeyAuth } from './middleware/auth';
+import { apiKeyAuth, authenticate, requireAdmin, type AuthenticatedRequest } from './middleware/auth';
 import { startBlockchainIndexer } from './services/blockchain-indexer';
 import { startProbabilitySnapshotJob } from './jobs/probability-snapshot';
+import { startAutoMarketCreatorJob } from './jobs/auto-market-creator';
 
 dotenv.config();
 
@@ -53,7 +54,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 app.use('/api', apiKeyAuth, apiRoutes);
 
-app.post('/api/send-email', async (req: Request, res: Response) => {
+app.post('/api/send-email', authenticate, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   if (!resend) {
     return res.status(500).json({ success: false, error: 'RESEND_API_KEY not configured' });
   }
@@ -65,11 +66,23 @@ app.post('/api/send-email', async (req: Request, res: Response) => {
       html?: string;
     };
 
+    if (!to || !subject || !html) {
+      return res.status(400).json({ success: false, error: 'Campos obrigatorios: to, subject, html' });
+    }
+
+    if (typeof to !== 'string' || typeof subject !== 'string' || typeof html !== 'string') {
+      return res.status(400).json({ success: false, error: 'Formato invalido para campos de email' });
+    }
+
+    if (html.length > 50000) {
+      return res.status(400).json({ success: false, error: 'HTML muito longo' });
+    }
+
     const data = await resend.emails.send({
       from: process.env.RESEND_FROM || 'onboarding@resend.dev',
-      to: to || process.env.ADMIN_EMAIL || 'voxpredict@gmail.com',
-      subject: subject || 'Test Email from VoxPredict API',
-      html: html || '<p>This is a test email from VoxPredict API</p>',
+      to,
+      subject,
+      html,
     });
 
     return res.status(200).json({ success: true, data });
@@ -85,6 +98,7 @@ app.listen(PORT, () => {
   console.log(`VoxPredict API running on port ${PORT}`);
   const enableIndexer = process.env.ENABLE_BLOCKCHAIN_INDEXER === 'true';
   const enableSnapshotJob = process.env.ENABLE_PROBABILITY_SNAPSHOT_JOB === 'true';
+  const enableAutoMarkets = process.env.ENABLE_AUTO_MARKETS === 'true';
 
   if (enableIndexer) {
     startBlockchainIndexer().catch((error) => {
@@ -98,5 +112,12 @@ app.listen(PORT, () => {
     startProbabilitySnapshotJob();
   } else {
     console.log('Probability snapshot job disabled (set ENABLE_PROBABILITY_SNAPSHOT_JOB=true to enable)');
+  }
+
+  if (enableAutoMarkets) {
+    startAutoMarketCreatorJob();
+    console.log('Auto market creator job enabled (runs daily at 9:00)');
+  } else {
+    console.log('Auto market creator job disabled (set ENABLE_AUTO_MARKETS=true to enable)');
   }
 });

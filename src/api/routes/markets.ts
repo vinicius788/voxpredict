@@ -37,7 +37,7 @@ const toNumber = (value: Prisma.Decimal | number | string | null | undefined) =>
 
 const parsePagination = (req: Request) => {
   const page = Math.max(1, Number(req.query.page || 1));
-  const limit = Math.min(50, Math.max(1, Number(req.query.limit || 12)));
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit || 12)));
   const skip = (page - 1) * limit;
   return { page, limit, skip };
 };
@@ -49,18 +49,14 @@ const parseMarketId = (rawId: string) => {
 };
 
 const calculateMultiplier = (totalYes: number, totalNo: number, side: 'YES' | 'NO') => {
+  const sidePool = side === 'YES' ? totalYes : totalNo;
+  const otherPool = side === 'YES' ? totalNo : totalYes;
   const total = totalYes + totalNo;
-  if (total === 0) return 2;
 
-  if (side === 'YES') {
-    if (totalYes === 0) return 1;
-    const losingPool = totalNo * (1 - PLATFORM_FEE_RATE);
-    return Number(((totalYes + losingPool) / totalYes).toFixed(2));
-  }
+  if (total === 0 || sidePool === 0) return 2;
 
-  if (totalNo === 0) return 1;
-  const losingPool = totalYes * (1 - PLATFORM_FEE_RATE);
-  return Number(((totalNo + losingPool) / totalNo).toFixed(2));
+  const netPrize = otherPool * (1 - PLATFORM_FEE_RATE);
+  return Number(((sidePool + netPrize) / sidePool).toFixed(2));
 };
 
 const mapMarket = (market: {
@@ -83,8 +79,13 @@ const mapMarket = (market: {
   const totalVolume = toNumber(market.totalVolume);
   const totalYes = toNumber(market.totalYes);
   const totalNo = toNumber(market.totalNo);
-  const yesProb = totalVolume > 0 ? Math.round((totalYes / totalVolume) * 100) : 50;
-  const noProb = totalVolume > 0 ? Math.round((totalNo / totalVolume) * 100) : 50;
+  const totalPool = totalYes + totalNo;
+  const yesProbability = totalPool > 0 ? totalYes / totalPool : 0.5;
+  const noProbability = totalPool > 0 ? totalNo / totalPool : 0.5;
+  const yesProbabilityPct = Number((yesProbability * 100).toFixed(1));
+  const noProbabilityPct = Number((noProbability * 100).toFixed(1));
+  const yesMultiplier = calculateMultiplier(totalYes, totalNo, 'YES');
+  const noMultiplier = calculateMultiplier(totalYes, totalNo, 'NO');
 
   return {
     id: market.id,
@@ -100,16 +101,22 @@ const mapMarket = (market: {
     totalVolume,
     totalYes,
     totalNo,
+    yesPool: totalYes,
+    noPool: totalNo,
     participants: market.participants,
     totalBettors: market.participants,
-    yesProb,
-    noProb,
-    simProbability: yesProb,
-    naoProbability: noProb,
-    yesMultiplier: calculateMultiplier(totalYes, totalNo, 'YES'),
-    noMultiplier: calculateMultiplier(totalYes, totalNo, 'NO'),
-    simOdds: calculateMultiplier(totalYes, totalNo, 'YES'),
-    naoOdds: calculateMultiplier(totalYes, totalNo, 'NO'),
+    yesProb: yesProbabilityPct,
+    noProb: noProbabilityPct,
+    simProbability: yesProbabilityPct,
+    naoProbability: noProbabilityPct,
+    yesProbability,
+    noProbability,
+    yesMultiplier,
+    noMultiplier,
+    simOdds: yesMultiplier,
+    naoOdds: noMultiplier,
+    yesOdds: yesMultiplier,
+    noOdds: noMultiplier,
     createdAt: market.createdAt,
     resolvedAt: market.resolvedAt,
   };
@@ -120,13 +127,18 @@ router.get('/', async (req: Request, res: Response) => {
     const { page, limit, skip } = parsePagination(req);
     const category = typeof req.query.category === 'string' ? req.query.category : undefined;
     const status = typeof req.query.status === 'string' ? req.query.status.toUpperCase() : undefined;
+    const includeAll = req.query.includeAll === 'true';
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : undefined;
     const sortBy = typeof req.query.sortBy === 'string' ? req.query.sortBy : 'volume';
 
     const where: Prisma.MarketWhereInput = {};
 
     if (category && category !== 'all') where.category = category;
-    if (status && status !== 'ALL') where.status = status as never;
+    if (status && status !== 'ALL') {
+      where.status = status as never;
+    } else if (!includeAll) {
+      where.status = 'ACTIVE';
+    }
     if (search) {
       where.question = { contains: search, mode: 'insensitive' };
     }

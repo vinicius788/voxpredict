@@ -2,11 +2,14 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
+    using SafeERC20 for IERC20;
+
     struct Market {
         uint256 id;
         string question;
@@ -43,6 +46,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
     event MarketCancelled(uint256 indexed marketId);
 
     constructor(address _treasury) Ownable(msg.sender) {
+        require(_treasury != address(0), "Treasury nao pode ser address zero");
         treasury = _treasury;
     }
 
@@ -85,6 +89,12 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         require(market.id != 0, "Market not found");
         require(!market.resolved, "Already resolved");
         require(block.timestamp >= market.endTime, "Market not ended");
+        if (market.totalYesAmount == 0 || market.totalNoAmount == 0) {
+            market.outcome = 3;
+            market.resolved = true;
+            emit MarketCancelled(_marketId);
+            return;
+        }
         require(_outcome == 1 || _outcome == 2, "Invalid outcome");
 
         market.outcome = _outcome;
@@ -94,7 +104,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         uint256 fee = (losingPool * platformFee) / 10000;
 
         if (fee > 0) {
-            IERC20(market.token).transfer(treasury, fee);
+            IERC20(market.token).safeTransfer(treasury, fee);
         }
 
         emit MarketResolved(_marketId, _outcome);
@@ -118,7 +128,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         require(_amount >= market.minBet, "Below minimum");
         require(_amount <= market.maxBet, "Above maximum");
 
-        IERC20(market.token).transferFrom(msg.sender, address(this), _amount);
+        IERC20(market.token).safeTransferFrom(msg.sender, address(this), _amount);
 
         Position storage pos = positions[_marketId][msg.sender];
         if (_isYes) {
@@ -145,7 +155,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         uint256 winnings = calculateWinnings(_marketId, msg.sender);
         require(winnings > 0, "No winnings");
 
-        IERC20(market.token).transfer(msg.sender, winnings);
+        IERC20(market.token).safeTransfer(msg.sender, winnings);
         emit WinningsClaimed(_marketId, msg.sender, winnings);
     }
 
@@ -161,7 +171,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         uint256 refund = pos.yesAmount + pos.noAmount;
         require(refund > 0, "Nothing to refund");
 
-        IERC20(market.token).transfer(msg.sender, refund);
+        IERC20(market.token).safeTransfer(msg.sender, refund);
     }
 
     function calculateWinnings(uint256 _marketId, address _user) public view returns (uint256) {
@@ -184,11 +194,16 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
 
     function getOdds(uint256 _marketId) public view returns (uint256 yesOdds, uint256 noOdds) {
         Market storage market = markets[_marketId];
-        uint256 total = market.totalYesAmount + market.totalNoAmount;
-        if (total == 0) return (5000, 5000);
+        uint256 yesPool = market.totalYesAmount;
+        uint256 noPool = market.totalNoAmount;
 
-        yesOdds = (market.totalYesAmount * 10000) / total;
-        noOdds = 10000 - yesOdds;
+        if (yesPool == 0 && noPool == 0) return (20000, 20000);
+        if (yesPool == 0) return (0, 10000);
+        if (noPool == 0) return (10000, 0);
+
+        uint256 netMultiplier = 10000 - platformFee;
+        yesOdds = ((yesPool * 10000) + (noPool * netMultiplier)) / yesPool;
+        noOdds = ((noPool * 10000) + (yesPool * netMultiplier)) / noPool;
     }
 
     function setAllowedToken(address _token, bool _allowed) external onlyOwner {
@@ -201,6 +216,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
     }
 
     function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Treasury nao pode ser address zero");
         treasury = _treasury;
     }
 
@@ -212,4 +228,3 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         _unpause();
     }
 }
-

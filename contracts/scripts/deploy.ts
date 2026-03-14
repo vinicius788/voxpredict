@@ -40,9 +40,17 @@ const main = async () => {
   }
 
   const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, wallet);
+  const maxPriorityFeePerGas = ethers.utils.parseUnits("25", "gwei");
+  const maxFeePerGas = ethers.utils.parseUnits("26", "gwei");
+
+  console.log("Gas config:", {
+    maxPriorityFeePerGas: `${ethers.utils.formatUnits(maxPriorityFeePerGas, "gwei")} gwei`,
+    maxFeePerGas: `${ethers.utils.formatUnits(maxFeePerGas, "gwei")} gwei`,
+  });
+
   const contract = await factory.deploy(treasuryAddress, {
-    maxPriorityFeePerGas: ethers.utils.parseUnits("30", "gwei"),
-    maxFeePerGas: ethers.utils.parseUnits("35", "gwei"),
+    maxPriorityFeePerGas,
+    maxFeePerGas,
   });
   await contract.deployed();
 

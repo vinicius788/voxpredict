@@ -4,7 +4,7 @@ import { Download, TrendingDown, TrendingUp } from 'lucide-react';
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Market } from '../types';
 import { useMarkets } from '../hooks/useMarkets';
-import { useFinancialOverview } from '../hooks/useAdminData';
+import { useAdminStats, useFinancialOverview } from '../hooks/useAdminData';
 
 interface AdminFinancialOverviewProps {
   isBrandTheme?: boolean;
@@ -46,17 +46,11 @@ const classifyPeriod = (market: Market): PeriodKey => {
   return 'longTerm';
 };
 
-export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ isBrandTheme = false }) => {
+export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = () => {
   const navigate = useNavigate();
-  const { data: marketsResponse } = useMarkets({ limit: 200 });
+  const { data: marketsResponse } = useMarkets({ limit: 200, includeAll: true });
+  const { data: adminStats } = useAdminStats();
   const { data: financialOverview } = useFinancialOverview();
-
-  const themeClasses = {
-    cardBg: isBrandTheme ? 'bg-gray-800' : 'bg-white',
-    text: isBrandTheme ? 'text-white' : 'text-gray-900',
-    textSecondary: isBrandTheme ? 'text-gray-300' : 'text-gray-600',
-    border: isBrandTheme ? 'border-gray-700' : 'border-gray-200',
-  };
 
   const marketRows = useMemo(() => {
     const markets = marketsResponse?.markets || [];
@@ -125,6 +119,18 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
     Economia: categoryDistribution.find((item) => normalizeCategory(item.category) === 'economia')?.percentage || 0,
   };
 
+  const toNumber = (value: unknown) => Number(value ?? 0);
+  const revenueStats = {
+    day: toNumber(adminStats?.revenueToday ?? periodStats.day),
+    week: toNumber(adminStats?.revenueWeek ?? periodStats.week),
+    month: toNumber(adminStats?.revenueMonth ?? periodStats.month),
+    total: toNumber(adminStats?.revenueTotal ?? totalRevenue),
+    projected: toNumber(adminStats?.projectedRevenue ?? totalRevenue),
+    cryptoShare: toNumber(adminStats?.cryptoShare ?? projectedBreakdown.Cripto),
+    politicsShare: toNumber(adminStats?.politicsShare ?? projectedBreakdown.Política),
+    economyShare: toNumber(adminStats?.economyShare ?? projectedBreakdown.Economia),
+  };
+
   const exportCsv = () => {
     const headers = ['ID', 'Mercado', 'Categoria', 'Volume', 'Receita', 'Participantes', 'Encerramento', '% do Total'];
     const rows = marketRows.map((row) => [
@@ -149,10 +155,10 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
   };
 
   const cards = [
-    { label: 'Hoje', value: periodStats.day, trend: 4.2, borderColor: '#3B82F6' },
-    { label: 'Esta Semana', value: periodStats.week, trend: 8.6, borderColor: '#10B981' },
-    { label: 'Este Mês', value: periodStats.month, trend: 11.3, borderColor: '#8B5CF6' },
-    { label: 'Longo Prazo', value: periodStats.longTerm, trend: -2.1, borderColor: '#F59E0B' },
+    { label: 'HOJE', value: revenueStats.day, trend: 4.2 },
+    { label: 'ESTA SEMANA', value: revenueStats.week, trend: 8.6 },
+    { label: 'ESTE MÊS', value: revenueStats.month, trend: 11.3 },
+    { label: 'TOTAL', value: revenueStats.total, trend: -2.1 },
   ];
 
   const renderTableSection = (label: string, rows: typeof marketRows) => {
@@ -160,10 +166,10 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
 
     return (
       <div className="mt-5">
-        <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>{label}</h4>
-        <div className="overflow-x-auto rounded-[10px] border border-[var(--border)]">
+        <h4 className="mb-2 text-sm font-semibold text-gray-400">{label}</h4>
+        <div className="overflow-x-auto rounded-[10px] border border-white/10">
           <table className="w-full min-w-[920px] border-collapse text-sm">
-            <thead className="bg-[rgba(255,255,255,0.04)] text-left text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
+            <thead className="bg-[#0f0f1a] text-left text-xs uppercase tracking-[0.08em] text-gray-500">
               <tr>
                 <th className="px-3 py-2.5">Mercado</th>
                 <th className="px-3 py-2.5">Categoria</th>
@@ -176,29 +182,29 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-t border-[var(--border)] hover:bg-[rgba(255,255,255,0.02)]">
+                <tr key={row.id} className="border-t border-white/10 hover:bg-white/5">
                   <td className="px-3 py-2.5">
                     <button
                       onClick={() => navigate(`/market/${row.id}`)}
-                      className="line-clamp-1 max-w-[320px] text-left text-[var(--text-primary)] hover:underline"
+                      className="line-clamp-1 max-w-[320px] text-left text-white hover:underline"
                     >
                       {row.title}
                     </button>
                   </td>
-                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">{row.category}</td>
-                  <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">{formatCurrency(row.volume)}</td>
+                  <td className="px-3 py-2.5 text-gray-300">{row.category}</td>
+                  <td className="mono-value px-3 py-2.5 text-gray-300">{formatCurrency(row.volume)}</td>
                   <td className="mono-value px-3 py-2.5 text-[#34d399]">{formatCurrency(row.revenue)}</td>
-                  <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">
+                  <td className="mono-value px-3 py-2.5 text-gray-300">
                     {totalRevenue ? ((row.revenue / totalRevenue) * 100).toFixed(2) : '0.00'}%
                   </td>
-                  <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">{row.participants}</td>
-                  <td className="mono-value px-3 py-2.5 text-[var(--text-secondary)]">{new Date(row.endDate).toLocaleDateString('pt-BR')}</td>
+                  <td className="mono-value px-3 py-2.5 text-gray-300">{row.participants}</td>
+                  <td className="mono-value px-3 py-2.5 text-gray-300">{new Date(row.endDate).toLocaleDateString('pt-BR')}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-[var(--border)] bg-[rgba(255,255,255,0.03)] text-xs text-[var(--text-secondary)]">
-                <td className="px-3 py-2.5 font-semibold text-[var(--text-primary)]">TOTAL</td>
+              <tr className="border-t border-white/10 bg-[#0f0f1a] text-xs text-gray-300">
+                <td className="px-3 py-2.5 font-semibold text-white">TOTAL</td>
                 <td className="px-3 py-2.5" />
                 <td className="px-3 py-2.5" />
                 <td className="mono-value px-3 py-2.5 text-[#fbbf24]">{formatCurrency(sectionTotal)}</td>
@@ -215,10 +221,13 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
 
   return (
     <div className="space-y-6">
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
         <div className="flex items-center justify-between gap-3">
-          <h2 className={`text-xl font-semibold ${themeClasses.text}`}>Visão Financeira</h2>
-          <button onClick={exportCsv} className="vp-btn-ghost px-3 py-2 text-sm font-semibold inline-flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-white">Visão Financeira</h2>
+          <button
+            onClick={exportCsv}
+            className="inline-flex items-center gap-2 rounded-[8px] border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/10"
+          >
             <Download className="w-4 h-4" /> Exportar CSV
           </button>
         </div>
@@ -227,11 +236,10 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
           {cards.map((card) => (
             <div
               key={card.label}
-              className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4"
-              style={{ borderLeft: `3px solid ${card.borderColor}` }}
+              className="rounded-[10px] border border-white/10 bg-[#1e1e30] p-4"
             >
-              <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">{card.label}</p>
-              <p className="mono-value mt-2 text-xl font-bold text-[var(--text-primary)]">{formatCurrency(card.value)}</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">{card.label}</p>
+              <p className="mono-value mt-2 text-2xl font-bold text-white">{formatCurrency(card.value)}</p>
               <p className={`mt-2 inline-flex items-center gap-1 text-xs ${card.trend >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>
                 {card.trend >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                 {Math.abs(card.trend).toFixed(1)}% vs período anterior
@@ -240,17 +248,17 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
           ))}
         </div>
 
-        <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-          <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Receita Total Projetada</p>
-          <p className="mono-value mt-2 text-3xl font-bold text-[var(--text-primary)]">{formatCurrency(totalRevenue)}</p>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            Cripto: {projectedBreakdown.Cripto.toFixed(0)}% | Política: {projectedBreakdown.Política.toFixed(0)}% | Economia: {projectedBreakdown.Economia.toFixed(0)}%
+        <div className="mt-5 rounded-[10px] border border-white/10 bg-[#1e1e30] p-4">
+          <p className="text-xs uppercase tracking-[0.08em] text-gray-500">Receita Total Projetada</p>
+          <p className="mono-value mt-2 text-4xl font-bold text-amber-400">{formatCurrency(revenueStats.projected)}</p>
+          <p className="mt-2 text-sm text-gray-300">
+            Cripto: {revenueStats.cryptoShare.toFixed(0)}% | Política: {revenueStats.politicsShare.toFixed(0)}% | Economia: {revenueStats.economyShare.toFixed(0)}%
           </p>
         </div>
       </div>
 
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
-        <h3 className={`text-lg font-semibold ${themeClasses.text} mb-3`}>Distribuição de Receita por Categoria</h3>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
+        <h3 className="mb-3 text-lg font-semibold text-white">Distribuição de Receita por Categoria</h3>
         <div className="flex flex-col items-center justify-center gap-5 lg:flex-row lg:items-center">
           <div className="h-[280px] w-full max-w-[360px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -278,10 +286,10 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
                     const row = payload[0].payload as { category: string; value: number; percentage: number };
 
                     return (
-                      <div className="rounded-[10px] border border-[var(--border)] bg-[var(--brand-800)] px-3 py-2 text-xs text-[var(--text-primary)] shadow-lg">
+                      <div className="rounded-[10px] border border-white/10 bg-[#0f0f1a] px-3 py-2 text-xs text-white shadow-lg">
                         <p className="font-semibold">{row.category}</p>
-                        <p className="mono-value text-[var(--text-secondary)]">{formatCurrency(row.value)}</p>
-                        <p className="mono-value text-[var(--text-secondary)]">{row.percentage.toFixed(1)}%</p>
+                        <p className="mono-value text-gray-300">{formatCurrency(row.value)}</p>
+                        <p className="mono-value text-gray-300">{row.percentage.toFixed(1)}%</p>
                       </div>
                     );
                   }}
@@ -294,14 +302,14 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
             {categoryDistribution.map((item) => {
               const color = categoryColors[normalizeCategory(item.category)] || '#94A3B8';
               return (
-                <div key={item.category} className="flex items-center justify-between rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2">
-                  <div className="inline-flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                <div key={item.category} className="flex items-center justify-between rounded-[10px] border border-white/10 bg-[#0f0f1a] px-3 py-2">
+                  <div className="inline-flex items-center gap-2 text-sm text-white">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
                     {item.category}
                   </div>
                   <div className="text-right">
-                    <p className="mono-value text-xs text-[var(--text-secondary)]">{item.percentage.toFixed(1)}%</p>
-                    <p className="mono-value text-xs text-[var(--text-primary)]">{formatCurrency(item.value)}</p>
+                    <p className="mono-value text-xs text-gray-300">{item.percentage.toFixed(1)}%</p>
+                    <p className="mono-value text-xs text-white">{formatCurrency(item.value)}</p>
                   </div>
                 </div>
               );
@@ -310,7 +318,7 @@ export const AdminFinancialOverview: React.FC<AdminFinancialOverviewProps> = ({ 
         </div>
       </div>
 
-      <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
+      <div className="rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
         {renderTableSection('Operações do Dia', periodGroups.day)}
         {renderTableSection('Operações da Semana', periodGroups.week)}
         {renderTableSection('Operações do Mês', periodGroups.month)}

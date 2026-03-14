@@ -65,7 +65,30 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
   if (secret) {
     try {
       const decoded = jwt.verify(token, secret) as AuthenticatedUser;
-      req.user = decoded;
+      let enrichedUser: AuthenticatedUser = decoded;
+
+      if (decoded.id || decoded.email) {
+        const persistedUser = decoded.id
+          ? await prisma.user.findUnique({
+              where: { id: decoded.id },
+              select: { id: true, email: true, role: true, walletAddress: true },
+            })
+          : await prisma.user.findFirst({
+              where: { email: decoded.email?.toLowerCase() },
+              select: { id: true, email: true, role: true, walletAddress: true },
+            });
+
+        if (persistedUser) {
+          enrichedUser = {
+            id: persistedUser.id,
+            email: persistedUser.email,
+            role: persistedUser.role,
+            walletAddress: persistedUser.walletAddress || undefined,
+          };
+        }
+      }
+
+      req.user = enrichedUser;
       return next();
     } catch {
       // Try Supabase token verification below.
@@ -81,7 +104,7 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
         const role = userEmail && adminEmail && userEmail === adminEmail ? 'ADMIN' : 'USER';
 
         if (data.user.email) {
-          await prisma.user.upsert({
+          const persistedUser = await prisma.user.upsert({
             where: { id: data.user.id },
             update: {
               email: data.user.email.toLowerCase(),
@@ -93,15 +116,22 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
               role,
               username: (data.user.user_metadata?.username as string | undefined) || data.user.email.split('@')[0],
             },
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              walletAddress: true,
+            },
           });
-        }
 
-        req.user = {
-          id: data.user.id,
-          email: data.user.email || undefined,
-          role,
-        };
-        return next();
+          req.user = {
+            id: persistedUser.id,
+            email: persistedUser.email,
+            role: persistedUser.role,
+            walletAddress: persistedUser.walletAddress || undefined,
+          };
+          return next();
+        }
       }
     } catch {
       // Falls through to unauthorized.

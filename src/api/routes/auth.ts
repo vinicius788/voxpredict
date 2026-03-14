@@ -3,11 +3,14 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { SiweMessage } from 'siwe';
 import { z } from 'zod';
+import { ethers } from 'ethers';
 import { prisma } from '../db/prisma';
+import { authenticate, type AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
 const nonceStore = new Map<string, { nonce: string; expiresAt: number }>();
+const walletLinkNonceStore = new Map<string, { nonce: string; message: string; expiresAt: number }>();
 
 const nonceQuerySchema = z.object({
   address: z.string().min(10),
@@ -18,9 +21,10 @@ const verifyBodySchema = z.object({
   signature: z.string().min(10),
 });
 
-const linkBodySchema = z.object({
-  userId: z.string().min(1),
+const linkWalletSchema = z.object({
   walletAddress: z.string().min(10),
+  signature: z.string().min(10),
+  message: z.string().min(10),
 });
 
 router.get('/nonce', (req: Request, res: Response) => {
@@ -110,19 +114,83 @@ router.post('/verify-wallet', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/link-wallet', async (req: Request, res: Response) => {
-  const parsed = linkBodySchema.safeParse(req.body);
+router.get('/wallet-nonce', authenticate, (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const message = `VoxPredict: vincule sua carteira.\nNonce: ${nonce}\nUsuario: ${userId}`;
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+
+  walletLinkNonceStore.set(userId, { nonce, message, expiresAt });
+  setTimeout(() => {
+    const current = walletLinkNonceStore.get(userId);
+    if (current?.nonce === nonce) {
+      walletLinkNonceStore.delete(userId);
+    }
+  }, 5 * 60 * 1000);
+
+  return res.status(200).json({ success: true, nonce, message });
+});
+
+router.post('/link-wallet', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const parsed = linkWalletSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'Invalid payload' });
   }
 
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
   try {
+    const walletAddress = parsed.data.walletAddress.toLowerCase();
+    const nonceEntry = walletLinkNonceStore.get(userId);
+    if (!nonceEntry || nonceEntry.expiresAt < Date.now()) {
+      return res.status(400).json({ success: false, error: 'Nonce invalido ou expirado' });
+    }
+
+    if (parsed.data.message !== nonceEntry.message || !parsed.data.message.includes(nonceEntry.nonce)) {
+      return res.status(400).json({ success: false, error: 'Mensagem de assinatura invalida' });
+    }
+
+    if (!ethers.utils.isAddress(walletAddress)) {
+      return res.status(400).json({ success: false, error: 'Endereco de carteira invalido' });
+    }
+
+    let recoveredAddress: string;
+    try {
+      recoveredAddress = ethers.utils.verifyMessage(parsed.data.message, parsed.data.signature).toLowerCase();
+    } catch {
+      return res.status(400).json({ success: false, error: 'Falha ao verificar assinatura' });
+    }
+
+    if (recoveredAddress !== walletAddress) {
+      return res.status(400).json({ success: false, error: 'Assinatura invalida para esta carteira' });
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        walletAddress: { equals: walletAddress, mode: 'insensitive' },
+        NOT: { id: userId },
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'Carteira ja vinculada a outra conta' });
+    }
+
     const updated = await prisma.user.update({
-      where: { id: parsed.data.userId },
-      data: { walletAddress: parsed.data.walletAddress.toLowerCase() },
+      where: { id: userId },
+      data: { walletAddress },
       select: { id: true, email: true, walletAddress: true, role: true },
     });
 
+    walletLinkNonceStore.delete(userId);
     return res.status(200).json({ success: true, user: updated });
   } catch (error) {
     console.error('Link wallet error:', error);

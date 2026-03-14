@@ -27,6 +27,18 @@ enum TxType {
   REFUND
 }
 
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TemplateFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -40,6 +52,7 @@ model User {
   positions     Position[]
   transactions  Transaction[]
   notifications Notification[]
+  proposals     MarketProposal[]
 }
 
 model Market {
@@ -141,4 +154,41 @@ model Category {
   updatedAt   DateTime @updatedAt
 
   @@index([sortOrder, active])
+}
+
+model MarketProposal {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String
+  category    String
+  resolveBy   DateTime
+  tags        String[]
+  status      ProposalStatus @default(PENDING)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adminNote   String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model MarketTemplate {
+  id            Int               @id @default(autoincrement())
+  name          String            @unique
+  titleTemplate String
+  descTemplate  String
+  category      String
+  frequency     TemplateFrequency
+  variables     Json
+  minBet        Float             @default(5)
+  maxBet        Float             @default(1000)
+  active        Boolean           @default(true)
+  lastRunAt     DateTime?
+  nextRunAt     DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([active, nextRunAt])
 }

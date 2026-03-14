@@ -1,12 +1,14 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { authenticate, requireAdmin } from '../middleware/auth';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize router
 const router = express.Router();
+router.use(authenticate, requireAdmin);
 
 // OpenAI API key
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;

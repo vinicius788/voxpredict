@@ -35,12 +35,15 @@ import { AdminCategoryManager } from '../components/AdminCategoryManager';
 import { AdminFinancialOverview } from '../components/AdminFinancialOverview';
 import { AdminAIMarketGenerator } from '../components/AdminAIMarketGenerator';
 import { AdminMarketResolver } from '../components/AdminMarketResolver';
+import { AdminProposalsManager } from '../components/AdminProposalsManager';
+import { AdminTemplateManager } from '../components/AdminTemplateManager';
 import { StatCardSkeleton } from '../components/ui/Skeleton';
 import { useAdminStats } from '../hooks/useAdminData';
+import { api } from '../lib/api-client';
 
-type AdminTab = 'overview' | 'create' | 'manage' | 'finance' | 'categories' | 'ai' | 'treasury' | 'resolve';
+type AdminTab = 'overview' | 'create' | 'manage' | 'finance' | 'categories' | 'proposals' | 'ai' | 'templates' | 'treasury' | 'resolve';
 type OverviewPeriod = '7d' | '30d' | '90d';
-const validTabs: AdminTab[] = ['overview', 'create', 'manage', 'finance', 'categories', 'ai', 'treasury', 'resolve'];
+const validTabs: AdminTab[] = ['overview', 'create', 'manage', 'finance', 'categories', 'proposals', 'ai', 'templates', 'treasury', 'resolve'];
 
 const maskEmail = (email: string) => {
   if (!email.includes('@')) return email;
@@ -128,7 +131,23 @@ export const AdminDashboard: React.FC<{
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [overviewPeriod, setOverviewPeriod] = useState<OverviewPeriod>('30d');
+  const [pendingProposals, setPendingProposals] = useState(0);
   const stats = adminStats || {};
+
+  useEffect(() => {
+    const loadPendingProposals = async () => {
+      if (!isAdmin) return;
+      try {
+        const response = await api.getProposals('PENDING');
+        const items = (response?.data || response || []) as Array<{ id: number }>;
+        setPendingProposals(items.length);
+      } catch {
+        setPendingProposals(0);
+      }
+    };
+
+    void loadPendingProposals();
+  }, [isAdmin]);
 
   const refreshAllData = async () => {
     setIsRefreshing(true);
@@ -250,13 +269,15 @@ export const AdminDashboard: React.FC<{
     ];
   }, [activeMarkets, resolutionRate, resolvedMarkets, stats.dailyRevenue, stats.pendingBets, stats.resolvedMarkets, stats.totalRevenue, stats.totalUsers, stats.userGrowthPercent, stats.volume24h, stats.newUsersToday, totalMarkets]);
 
-  const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }> = [
     { id: 'overview', label: 'Visão Geral', icon: BarChart3 },
     { id: 'create', label: 'Criar Mercado', icon: Plus },
     { id: 'manage', label: 'Gerenciar Mercados', icon: SlidersHorizontal },
     { id: 'finance', label: 'Financeiro', icon: DollarSign },
     { id: 'categories', label: 'Categorias', icon: ShieldCheck },
+    { id: 'proposals', label: 'Propostas', icon: CheckCircle2, badge: pendingProposals > 0 ? String(pendingProposals) : undefined },
     { id: 'ai', label: 'Gerador IA', icon: Zap },
+    { id: 'templates', label: 'Templates', icon: Plus },
     { id: 'treasury', label: 'Tesouro', icon: Wallet },
     { id: 'resolve', label: 'Resolver', icon: CheckCircle2 },
   ];
@@ -351,6 +372,11 @@ export const AdminDashboard: React.FC<{
                 }`}
               >
                 <Icon className="h-4 w-4" /> {tab.label}
+                {tab.badge && (
+                  <span className="rounded-[999px] border border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.18)] px-1.5 py-0.5 text-[10px] font-bold text-[#fcd34d]">
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -451,7 +477,9 @@ export const AdminDashboard: React.FC<{
         {activeTab === 'manage' && <AdminMarketManager />}
         {activeTab === 'finance' && <AdminFinancialOverview />}
         {activeTab === 'categories' && <AdminCategoryManager />}
+        {activeTab === 'proposals' && <AdminProposalsManager onPendingCountChange={setPendingProposals} />}
         {activeTab === 'ai' && <AdminAIMarketGenerator />}
+        {activeTab === 'templates' && <AdminTemplateManager />}
 
         {activeTab === 'treasury' && (
           <section className="mt-6 grid gap-4 lg:grid-cols-2">

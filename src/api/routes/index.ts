@@ -11,6 +11,8 @@ import oracleRouter from './oracle';
 import treasuryRouter from './treasury';
 import vaultRouter from './vault';
 import categoriesRouter from './categories';
+import proposalsRouter from './proposals';
+import templatesRouter from './templates';
 
 const router = express.Router();
 
@@ -26,5 +28,7 @@ router.use('/oracle', oracleRouter);
 router.use('/treasury', treasuryRouter);
 router.use('/vault', vaultRouter);
 router.use('/categories', categoriesRouter);
+router.use('/proposals', proposalsRouter);
+router.use('/templates', templatesRouter);
 
 export default router;

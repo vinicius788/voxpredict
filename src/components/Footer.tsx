@@ -11,26 +11,22 @@ export const Footer: React.FC = () => {
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
             <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-[var(--shadow-brand)]">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                  />
-                </svg>
+              <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+                <img
+                  src="/branding/voxpredict-icon.png"
+                  alt="VoxPredict ícone"
+                  className="h-8 w-8 object-contain"
+                  loading="lazy"
+                  decoding="async"
+                />
               </span>
-              <div>
-                <p className="font-[var(--font-display)] text-xl font-bold text-[var(--text-primary)]">VoxPredict</p>
-                <p className="text-sm text-[var(--text-secondary)]">Mercados preditivos descentralizados para a América Latina</p>
-              </div>
+              <img
+                src="/branding/voxpredict-logo.png"
+                alt="VoxPredict"
+                className="h-8 w-auto max-w-[180px] object-contain sm:h-9 sm:max-w-[210px]"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
 
             <p className="mb-4 max-w-xl text-sm text-[var(--text-secondary)]">
