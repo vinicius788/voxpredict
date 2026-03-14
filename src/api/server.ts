@@ -12,7 +12,9 @@ import { startBlockchainIndexer } from './services/blockchain-indexer';
 import { startProbabilitySnapshotJob } from './jobs/probability-snapshot';
 import { startAutoMarketCreatorJob } from './jobs/auto-market-creator';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
@@ -20,6 +22,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:4173',
   'https://voxpredict.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
@@ -94,7 +97,7 @@ app.post('/api/send-email', authenticate, requireAdmin, async (req: Authenticate
 
 app.use(errorLogger);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`VoxPredict API running on port ${PORT}`);
   const enableIndexer = process.env.ENABLE_BLOCKCHAIN_INDEXER === 'true';
   const enableSnapshotJob = process.env.ENABLE_PROBABILITY_SNAPSHOT_JOB === 'true';
