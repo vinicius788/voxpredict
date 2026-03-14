@@ -1,0 +1,7 @@
+node_modules/
+dist/
+src/components/
+src/pages/
+src/hooks/
+src/contexts/
+public/

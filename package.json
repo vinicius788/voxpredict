@@ -3,13 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "vite",
     "dev:api": "tsx src/api/server.ts",
     "start": "node --import tsx/esm src/api/server.ts",
     "start:prod": "NODE_ENV=production node --import tsx/esm src/api/server.ts",
     "start:render": "npm run start:prod",
-    "build": "tsc && vite build",
+    "build:api": "prisma generate",
+    "build": "vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
