@@ -113,8 +113,8 @@ export const AuthButton: React.FC = () => {
       </div>
 
       {showEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-[12px] border border-[var(--border)] bg-[var(--brand-800)] p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md bg-[#1e1e2e] rounded-2xl p-8 shadow-2xl border border-white/10">
             <h2 className="text-xl font-bold text-[var(--text-primary)]">
               {authMode === 'signin' ? 'Entrar na VoxPredict' : 'Criar conta na VoxPredict'}
             </h2>
