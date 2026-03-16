@@ -14,15 +14,12 @@ interface PredictionInterfaceProps {
   market: Market;
 }
 
-const PLATFORM_FEE = 0.03;
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+type PrimaryAction = (() => void | Promise<void>) | null;
 
-const clampAmount = (value: number, max: number) => {
-  if (!Number.isFinite(value)) return 0;
-  if (value < 0) return 0;
-  if (value > max) return max;
-  return value;
-};
+const PLATFORM_FEE = 0.03;
+const QUICK_AMOUNTS = [10, 25, 50, 100];
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const toCurrency = (value: number) =>
   value.toLocaleString('pt-BR', {
@@ -34,6 +31,12 @@ const parsePool = (value: number | undefined) => {
   if (value === undefined || value === null) return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+};
+
+const parseBetLimit = (value: unknown, fallback: number) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return parsed;
 };
 
@@ -53,6 +56,20 @@ const sanitizeOdds = (value: number | undefined | null, fallback: number) => {
   return fallback;
 };
 
+const normalizeProbability = (value: number | undefined, fallback: number) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed >= 0 && parsed <= 1) return parsed * 100;
+  return parsed;
+};
+
+const formatAmountInput = (value: number) => {
+  const normalized = Number(value.toFixed(2));
+  return normalized === 0 ? '' : String(normalized);
+};
+
+const isSameAmount = (left: number, right: number) => Math.abs(left - right) < 0.0001;
+
 export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market }) => {
   const { isWalletConnected, connectWallet, chainId, switchChain } = useWeb3();
   const { isSignedIn, isLoaded } = useAuth();
@@ -61,8 +78,9 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const forcedToken = (market.token || '').toUpperCase();
   const hasForcedToken = SUPPORTED_TOKENS.includes(forcedToken as SupportedToken);
 
-  const [side, setSide] = useState<'YES' | 'NO' | null>(null);
-  const [amount, setAmount] = useState('');
+  const [selectedSide, setSelectedSide] = useState<boolean | null>(null);
+  const [amount, setAmount] = useState<number>(0);
+  const [inputValue, setInputValue] = useState<string>('');
   const [token, setToken] = useState<SupportedToken>((hasForcedToken ? forcedToken : 'USDT') as SupportedToken);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -74,6 +92,10 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const { placeBet, isLoading, step, isSuccess, reset } = usePlaceBet();
   const { claim } = useClaimWinnings();
   const position = useUserPosition(isValidMarketId ? marketId : 0, effectiveToken);
+
+  const minBet = parseBetLimit((market as { minBet?: number }).minBet, 5);
+  const configuredMaxBet = parseBetLimit((market as { maxBet?: number }).maxBet, 1000);
+  const maxBet = Math.max(configuredMaxBet, minBet);
 
   const totalYes = useMemo(() => {
     const direct = parsePool(market.totalYes) ?? parsePool(market.yesPool);
@@ -96,35 +118,79 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
   const yesMultiplier = calculateMultiplier(totalYes, totalNo, 'YES');
   const noMultiplier = calculateMultiplier(totalYes, totalNo, 'NO');
-  const totalPool = totalYes + totalNo;
-  const yesProbability = totalPool > 0 ? (totalYes / totalPool) * 100 : market.simProbability;
-  const noProbability = totalPool > 0 ? (totalNo / totalPool) * 100 : market.naoProbability;
+  const yesOdds = sanitizeOdds(market.yesOdds, sanitizeOdds(market.simOdds, yesMultiplier));
+  const noOdds = sanitizeOdds(market.noOdds, sanitizeOdds(market.naoOdds, noMultiplier));
 
-  const normalizedAmount = clampAmount(Number(amount), balanceNumber);
-  const effectiveYesOdds = sanitizeOdds(market.yesOdds, sanitizeOdds(market.simOdds, yesMultiplier));
-  const effectiveNoOdds = sanitizeOdds(market.noOdds, sanitizeOdds(market.naoOdds, noMultiplier));
-  const selectedSide = side ?? 'YES';
-  const selectedMultiplier = selectedSide === 'YES' ? effectiveYesOdds : effectiveNoOdds;
-  const potentialReturn = normalizedAmount * selectedMultiplier;
-  const potentialProfit = potentialReturn - normalizedAmount;
-  const yesPotentialReturn = normalizedAmount * effectiveYesOdds;
-  const noPotentialReturn = normalizedAmount * effectiveNoOdds;
-  const yesProbabilityPercent = clamp(Number.isFinite(yesProbability) ? yesProbability : 50, 0, 100);
-  const noProbabilityPercent = clamp(Number.isFinite(noProbability) ? noProbability : 50, 0, 100);
-  const hasPositiveAmount = normalizedAmount > 0;
-  const hasMinimumAmount = normalizedAmount >= 5;
-  const hasSufficientBalance = normalizedAmount <= balanceNumber;
+  const totalPool = totalYes + totalNo;
+  const yesProbability = totalPool > 0 ? (totalYes / totalPool) * 100 : normalizeProbability(market.yesProbability, market.simProbability);
+  const noProbability = totalPool > 0 ? (totalNo / totalPool) * 100 : normalizeProbability(market.noProbability, market.naoProbability);
+  const yesProbabilityPercent = clamp(yesProbability, 0, 100);
+  const noProbabilityPercent = clamp(noProbability, 0, 100);
+
+  const activeOdds = selectedSide === false ? noOdds : yesOdds;
+  const activeSideLabel = selectedSide === false ? 'NÃO' : 'SIM';
+  const estimatedReturn = amount > 0 ? amount * activeOdds : 0;
+  const estimatedProfit = estimatedReturn - amount;
+  const platformFee = amount * PLATFORM_FEE;
+
+  const hasPositiveAmount = amount > 0;
+  const hasMinimumAmount = amount >= minBet;
+  const exceedsMaxAmount = amount > maxBet;
+  const hasSufficientBalance = amount <= balanceNumber;
   const isWrongNetwork = isWalletConnected && Boolean(chainId && chainId !== expectedChainId);
   const chainName = expectedChainId === 137 ? 'Polygon Mainnet' : 'Polygon Amoy (Testnet)';
-  const shouldDisablePrimary =
-    isLoading || (isWalletConnected && !isWrongNetwork && (!side || !hasPositiveAmount || !hasMinimumAmount || !hasSufficientBalance));
-  const primaryAmountLabel = hasPositiveAmount
-    ? toCurrency(normalizedAmount).replace(',00', '').replace(',0', '')
-    : '0';
+
+  const handleAmountChange = (value: number) => {
+    const normalized = Number.isFinite(value) ? Math.max(0, Number(value.toFixed(2))) : 0;
+    setAmount(normalized);
+    setInputValue(formatAmountInput(normalized));
+  };
 
   const handleQuickAmount = (value: number) => {
-    const nextAmount = clampAmount(value, balanceNumber);
-    setAmount(nextAmount > 0 ? String(Number(nextAmount.toFixed(2))) : '0');
+    handleAmountChange(clamp(value, 0, maxBet));
+  };
+
+  const handleInputChange = (raw: string) => {
+    setInputValue(raw);
+
+    if (raw === '' || raw === '0') {
+      setAmount(0);
+      return;
+    }
+
+    const parsed = Number.parseFloat(raw);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      setAmount(parsed);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (amount > 0 && amount < minBet) {
+      handleAmountChange(minBet);
+      return;
+    }
+
+    if (amount > maxBet) {
+      handleAmountChange(maxBet);
+      return;
+    }
+
+    setInputValue(formatAmountInput(amount));
+  };
+
+  const handleConnectWallet = async () => {
+    if (!isLoaded) {
+      toast.error('Aguarde, validando sua sessão.');
+      return;
+    }
+
+    if (!isSignedIn) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signin' } }));
+      toast.error('Faça login primeiro para conectar sua carteira');
+      return;
+    }
+
+    await connectWallet();
   };
 
   const handlePlaceBet = async () => {
@@ -133,31 +199,36 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       return;
     }
 
-    if (!side) {
+    if (selectedSide === null) {
       toast.error('Selecione SIM ou NÃO.');
       return;
     }
 
-    if (!amount || Number(amount) <= 0) {
+    if (!hasPositiveAmount) {
       toast.error('Informe um valor válido.');
       return;
     }
 
-    if (Number(amount) < 5) {
-      toast.error('Valor mínimo para aposta: $5.');
+    if (!hasMinimumAmount) {
+      toast.error(`Valor mínimo para aposta: $${toCurrency(minBet)}.`);
       return;
     }
 
-    if (Number(amount) > balanceNumber) {
-      toast.error('Saldo insuficiente.');
+    if (exceedsMaxAmount) {
+      toast.error(`Valor máximo para aposta: $${toCurrency(maxBet)}.`);
+      return;
+    }
+
+    if (!hasSufficientBalance) {
+      toast.error('Saldo insuficiente na carteira.');
       return;
     }
 
     try {
       await placeBet({
         marketId,
-        isYes: side === 'YES',
-        amount: Number(amount).toString(),
+        isYes: selectedSide === true,
+        amount: amount.toString(),
         tokenSymbol: effectiveToken,
       });
 
@@ -178,34 +249,87 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
     }
   };
 
-  const handlePrimaryAction = async () => {
+  const getButtonState = (): { text: string; action: PrimaryAction; className: string } => {
+    if (!isSignedIn) {
+      return {
+        text: '🔐 Faça login para apostar',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signin' } }));
+        },
+        className: 'bg-purple-600 text-white hover:bg-purple-500',
+      };
+    }
+
     if (!isWalletConnected) {
-      await handleConnectWallet();
-      return;
+      return {
+        text: '🔗 Conectar carteira para apostar',
+        action: handleConnectWallet,
+        className: 'bg-blue-600 text-white hover:bg-blue-500',
+      };
     }
 
     if (isWrongNetwork) {
-      await switchChain(expectedChainId);
-      return;
+      return {
+        text: `⚠️ Trocar para ${chainName}`,
+        action: () => switchChain(expectedChainId),
+        className: 'bg-amber-600 text-white hover:bg-amber-500',
+      };
     }
 
-    await handlePlaceBet();
+    if (selectedSide === null) {
+      return {
+        text: 'Selecione SIM ou NÃO para apostar',
+        action: null,
+        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+      };
+    }
+
+    if (!hasPositiveAmount) {
+      return {
+        text: 'Digite o valor da aposta',
+        action: null,
+        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+      };
+    }
+
+    if (!hasMinimumAmount) {
+      return {
+        text: `Mínimo $${toCurrency(minBet)}`,
+        action: null,
+        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+      };
+    }
+
+    if (exceedsMaxAmount) {
+      return {
+        text: `Máximo $${toCurrency(maxBet)}`,
+        action: null,
+        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+      };
+    }
+
+    if (!hasSufficientBalance) {
+      return {
+        text: 'Saldo insuficiente na carteira',
+        action: null,
+        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+      };
+    }
+
+    const sideLabel = selectedSide ? 'SIM' : 'NÃO';
+    const sideClass = selectedSide
+      ? 'bg-green-600 text-white shadow-lg shadow-green-500/20 hover:bg-green-500'
+      : 'bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-500';
+
+    return {
+      text: `Apostar $${toCurrency(amount)} em ${sideLabel} →`,
+      action: handlePlaceBet,
+      className: sideClass,
+    };
   };
 
-  const handleConnectWallet = async () => {
-    if (!isLoaded) {
-      toast.error('Aguarde, validando sua sessão.');
-      return;
-    }
-
-    if (!isSignedIn) {
-      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signin' } }));
-      toast.error('Faça login primeiro para conectar sua carteira');
-      return;
-    }
-
-    await connectWallet();
-  };
+  const buttonState = getButtonState();
+  const isPrimaryDisabled = isLoading || !buttonState.action;
 
   if (isClosed && market.status === 'resolved' && position.hasPosition && !position.claimed && userWon) {
     return (
@@ -248,8 +372,9 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
           <CheckCircle2 className="h-6 w-6" />
         </div>
         <p className="text-sm text-[var(--text-secondary)]">
-          Aposta confirmada na blockchain. Você apostou <span className="mono-value text-[var(--text-primary)]">${amount}</span>{' '}
-          em <span className="font-semibold text-[var(--text-primary)]">{side === 'YES' ? 'SIM' : 'NÃO'}</span>.
+          Aposta confirmada na blockchain. Você apostou{' '}
+          <span className="mono-value text-[var(--text-primary)]">${toCurrency(amount)}</span> em{' '}
+          <span className="font-semibold text-[var(--text-primary)]">{selectedSide ? 'SIM' : 'NÃO'}</span>.
         </p>
         <button onClick={reset} className="vp-btn-ghost mt-4 px-4 py-2 text-sm font-semibold">
           Fazer outra aposta
@@ -316,40 +441,44 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
       <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() => setSide('YES')}
+          onClick={() => setSelectedSide((prev) => (prev === true ? null : true))}
           className={`rounded-xl border-2 p-4 text-left transition-all ${
-            side === 'YES'
-              ? 'border-green-500 bg-green-500/10'
-              : 'border-white/10 bg-white/5 hover:border-green-500/50'
+            selectedSide === true
+              ? 'border-green-500 bg-green-500/15 shadow-lg shadow-green-500/10'
+              : 'border-white/10 bg-white/5 hover:border-green-500/40 hover:bg-green-500/5'
           }`}
         >
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-lg text-green-400">✓</span>
-            <span className="text-lg font-bold text-white">SIM</span>
+          <div className="mb-1 flex items-center gap-2">
+            <span className={selectedSide === true ? 'text-green-400' : 'text-gray-400'}>✓</span>
+            <span className="text-white font-bold">SIM</span>
           </div>
-          <div className="mono-value text-2xl font-bold text-green-400">{yesMultiplier.toFixed(2)}x</div>
-          <div className="mt-1 text-xs text-gray-400">{yesProbabilityPercent.toFixed(1)}% prob.</div>
-          <div className="mt-2 h-1.5 rounded-full bg-white/10">
-            <div className="h-1.5 rounded-full bg-green-400 transition-all" style={{ width: `${yesProbabilityPercent}%` }} />
+          <div className={`mono-value text-2xl font-bold ${selectedSide === true ? 'text-green-400' : 'text-gray-300'}`}>
+            {yesOdds.toFixed(2)}x
+          </div>
+          <div className="mt-1 text-xs text-gray-500">{yesProbabilityPercent.toFixed(1)}% prob.</div>
+          <div className="mt-2 h-1 rounded-full bg-white/10">
+            <div className="h-1 rounded-full bg-green-400 transition-all" style={{ width: `${yesProbabilityPercent}%` }} />
           </div>
         </button>
 
         <button
-          onClick={() => setSide('NO')}
+          onClick={() => setSelectedSide((prev) => (prev === false ? null : false))}
           className={`rounded-xl border-2 p-4 text-left transition-all ${
-            side === 'NO'
-              ? 'border-red-500 bg-red-500/10'
-              : 'border-white/10 bg-white/5 hover:border-red-500/50'
+            selectedSide === false
+              ? 'border-red-500 bg-red-500/15 shadow-lg shadow-red-500/10'
+              : 'border-white/10 bg-white/5 hover:border-red-500/40 hover:bg-red-500/5'
           }`}
         >
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-lg text-red-400">✗</span>
-            <span className="text-lg font-bold text-white">NÃO</span>
+          <div className="mb-1 flex items-center gap-2">
+            <span className={selectedSide === false ? 'text-red-400' : 'text-gray-400'}>✗</span>
+            <span className="text-white font-bold">NÃO</span>
           </div>
-          <div className="mono-value text-2xl font-bold text-red-400">{noMultiplier.toFixed(2)}x</div>
-          <div className="mt-1 text-xs text-gray-400">{noProbabilityPercent.toFixed(1)}% prob.</div>
-          <div className="mt-2 h-1.5 rounded-full bg-white/10">
-            <div className="h-1.5 rounded-full bg-red-400 transition-all" style={{ width: `${noProbabilityPercent}%` }} />
+          <div className={`mono-value text-2xl font-bold ${selectedSide === false ? 'text-red-400' : 'text-gray-300'}`}>
+            {noOdds.toFixed(2)}x
+          </div>
+          <div className="mt-1 text-xs text-gray-500">{noProbabilityPercent.toFixed(1)}% prob.</div>
+          <div className="mt-2 h-1 rounded-full bg-white/10">
+            <div className="h-1 rounded-full bg-red-400 transition-all" style={{ width: `${noProbabilityPercent}%` }} />
           </div>
         </button>
       </div>
@@ -357,22 +486,28 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Valor da aposta</p>
-          <div className="mono-value text-2xl font-bold text-[var(--text-primary)]">${amount || '0'}</div>
+          <div className="mono-value text-2xl font-bold text-[var(--text-primary)]">${toCurrency(amount)}</div>
         </div>
 
         <div className="mb-3 flex flex-wrap gap-2">
-          {[10, 25, 50, 100].map((value) => (
+          {QUICK_AMOUNTS.map((quickAmount) => (
             <button
-              key={value}
-              onClick={() => handleQuickAmount(value)}
-              className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              key={quickAmount}
+              onClick={() => handleQuickAmount(quickAmount)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                isSameAmount(amount, quickAmount)
+                  ? 'bg-amber-500 text-black'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
             >
-              ${value}
+              ${quickAmount}
             </button>
           ))}
           <button
-            onClick={() => handleQuickAmount(balanceNumber)}
-            className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            onClick={() => handleQuickAmount(maxBet)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+              isSameAmount(amount, maxBet) ? 'bg-amber-500 text-black' : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
           >
             MAX
           </button>
@@ -380,103 +515,106 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
         <input
           type="number"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          placeholder="0.00"
-          min={5}
-          max={balanceNumber}
-          step="0.01"
-          className="w-full rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[rgba(124,58,237,0.5)] focus:outline-none"
+          min={minBet}
+          max={maxBet}
+          value={inputValue}
+          onChange={(event) => handleInputChange(event.target.value)}
+          onBlur={handleInputBlur}
+          placeholder={`Mín. $${toCurrency(minBet)}`}
+          className="w-full rounded-lg border border-white/10 bg-[#0f0f1a] px-4 py-3 text-lg font-medium text-white [appearance:textfield] focus:border-amber-500/50 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
+
+        <div className="mt-1 flex justify-between text-xs text-gray-600">
+          <span>Mín: ${toCurrency(minBet)}</span>
+          <span>Máx: ${toCurrency(maxBet)}</span>
+        </div>
+
+        {amount > 0 && amount < minBet && <p className="mt-1 text-xs text-red-400">Valor mínimo é ${toCurrency(minBet)}</p>}
+        {amount > maxBet && <p className="mt-1 text-xs text-red-400">Valor máximo é ${toCurrency(maxBet)}</p>}
       </div>
 
-      {hasPositiveAmount && (
-        <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Ganho potencial</span>
-            <span className="mono-value text-lg font-bold text-white">${toCurrency(potentialReturn)}</span>
-          </div>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-sm text-gray-400">Lucro estimado</span>
-            <span className={`mono-value text-sm font-medium ${potentialProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {potentialProfit >= 0 ? '+' : ''}${toCurrency(potentialProfit)}
+      {amount > 0 && (
+        <div className="mt-3 rounded-xl border border-white/10 p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wide text-gray-500">
+              Apostando em {activeSideLabel} • {activeOdds.toFixed(2)}x
             </span>
           </div>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-sm text-gray-400">Multiplicador</span>
-            <span className="mono-value text-sm font-medium text-amber-400">{selectedMultiplier.toFixed(2)}x</span>
-          </div>
-          {!side && (
-            <>
-              <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
-                <span className="text-xs text-gray-500">Estimativa em SIM</span>
-                <span className="mono-value text-xs text-green-400">${toCurrency(yesPotentialReturn)}</span>
-              </div>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-xs text-gray-500">Estimativa em NÃO</span>
-                <span className="mono-value text-xs text-red-400">${toCurrency(noPotentialReturn)}</span>
-              </div>
-            </>
-          )}
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-xs text-gray-500">Taxa plataforma (3%)</span>
-            <span className="mono-value text-xs text-gray-500">-${toCurrency(normalizedAmount * PLATFORM_FEE)} (se perder)</span>
+
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-400">Ganho potencial</span>
+              <span className="mono-value text-lg font-bold text-white">${toCurrency(estimatedReturn)}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-400">Lucro estimado</span>
+              <span className={`mono-value text-sm font-semibold ${estimatedProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {estimatedProfit >= 0 ? '+' : ''}${toCurrency(estimatedProfit)}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-400">Sua aposta</span>
+              <span className="mono-value text-sm text-gray-300">${toCurrency(amount)}</span>
+            </div>
+
+            <div className="flex justify-between border-t border-white/5 pt-2">
+              <span className="text-xs text-gray-600">Taxa plataforma (se perder)</span>
+              <span className="mono-value text-xs text-gray-600">-${toCurrency(platformFee)}</span>
+            </div>
           </div>
         </div>
       )}
 
       {isLoading && (
         <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-3 text-xs">
-          <div className={`rounded px-2 py-1 ${['approving', 'waiting_approval'].includes(step) ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+          <div
+            className={`rounded px-2 py-1 ${
+              ['approving', 'waiting_approval'].includes(step)
+                ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)]'
+            }`}
+          >
             1. Aprovando
           </div>
           <span className="text-[var(--text-muted)]">→</span>
-          <div className={`rounded px-2 py-1 ${['betting', 'waiting_bet'].includes(step) ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+          <div
+            className={`rounded px-2 py-1 ${
+              ['betting', 'waiting_bet'].includes(step)
+                ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)]'
+            }`}
+          >
             2. Confirmando
           </div>
           <span className="text-[var(--text-muted)]">→</span>
-          <div className={`rounded px-2 py-1 ${step === 'success' ? 'bg-[rgba(16,185,129,0.2)] text-[#6ee7b7]' : 'text-[var(--text-secondary)]'}`}>
+          <div
+            className={`rounded px-2 py-1 ${
+              step === 'success' ? 'bg-[rgba(16,185,129,0.2)] text-[#6ee7b7]' : 'text-[var(--text-secondary)]'
+            }`}
+          >
             3. Registrado
           </div>
         </div>
       )}
 
       <button
-        onClick={() => void handlePrimaryAction()}
-        disabled={shouldDisablePrimary}
-        className={`mt-5 w-full rounded-xl py-4 text-lg font-bold transition-all ${
-          shouldDisablePrimary
-            ? 'cursor-not-allowed bg-white/5 text-gray-500'
-            : !isWalletConnected
-              ? 'bg-blue-500 text-white hover:bg-blue-400'
-              : isWrongNetwork
-                ? 'bg-amber-500 text-black hover:bg-amber-400'
-                : side === 'YES'
-                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/20 hover:bg-green-400'
-                  : side === 'NO'
-                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-400'
-                    : 'cursor-not-allowed bg-white/5 text-gray-500'
-        }`}
+        onClick={() => {
+          if (!isPrimaryDisabled && buttonState.action) {
+            void buttonState.action();
+          }
+        }}
+        disabled={isPrimaryDisabled}
+        className={`mt-5 w-full rounded-xl py-4 text-base font-bold transition-all ${buttonState.className}`}
       >
-        {!isWalletConnected
-          ? isSignedIn
-            ? '🔗 Conectar carteira para apostar'
-            : 'Faça login para conectar carteira'
-          : isWrongNetwork
-            ? `Trocar para ${chainName}`
-            : isLoading
-              ? 'Processando...'
-              : !side
-                ? 'Selecione SIM ou NÃO'
-                : !hasPositiveAmount
-                  ? 'Digite o valor da aposta'
-                  : !hasMinimumAmount
-                    ? 'Valor mínimo: $5.00'
-                    : !hasSufficientBalance
-                      ? 'Saldo insuficiente'
-                      : side === 'YES'
-                        ? `Apostar $${primaryAmountLabel} em SIM →`
-                        : `Apostar $${primaryAmountLabel} em NÃO →`}
+        {isLoading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="animate-spin">⟳</span> Confirmando...
+          </span>
+        ) : (
+          buttonState.text
+        )}
       </button>
 
       <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Taxa da plataforma: 3% sobre apostas perdedoras</p>
