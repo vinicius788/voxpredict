@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, History, LogOut, Settings, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -87,41 +88,28 @@ export const AuthButton: React.FC = () => {
     );
   }
 
-  return (
-    <>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => {
-            sessionStorage.setItem('redirect_after_login', location.pathname);
-            setAuthMode('signin');
-            setShowEmailModal(true);
+  const authModal = showEmailModal && typeof document !== 'undefined'
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowEmailModal(false);
+            }
           }}
-          className="vp-btn-ghost px-4 py-2 text-sm font-semibold"
         >
-          Entrar
-        </button>
-        <button
-          onClick={() => {
-            sessionStorage.setItem('redirect_after_login', location.pathname);
-            setAuthMode('signup');
-            setShowEmailModal(true);
-          }}
-          className="vp-btn-primary px-4 py-2 text-sm font-semibold"
-        >
-          Criar Conta
-        </button>
-      </div>
-
-      {showEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="w-full max-w-md bg-[#1e1e2e] rounded-2xl p-8 shadow-2xl border border-white/10 my-auto">
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">
+          <div
+            className="w-full max-w-md rounded-2xl p-6 border border-white/10"
+            style={{ backgroundColor: '#1e1e2e', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="mb-1 text-xl font-bold text-white">
               {authMode === 'signin' ? 'Entrar no VoxPredict' : 'Criar conta no VoxPredict'}
             </h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">Use email e senha para continuar na plataforma.</p>
+            <p className="mb-4 text-sm text-gray-400">Use email e senha para continuar na plataforma.</p>
 
             <form
-              className="mt-4"
               onSubmit={async (event) => {
                 event.preventDefault();
                 const formData = new FormData(event.currentTarget);
@@ -154,54 +142,99 @@ export const AuthButton: React.FC = () => {
               }}
             >
               {authMode === 'signup' && (
-                <input
-                  type="text"
-                  name="username"
-                  placeholder="Seu nome de usuário"
-                  className="vp-input mb-3 h-11 px-3 text-sm"
-                  minLength={2}
-                />
+                <div className="mb-4">
+                  <label className="mb-1 block text-xs text-gray-400">USUARIO</label>
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Seu nome de usuário"
+                    className="w-full rounded-lg border border-white/10 bg-[#0f0f1a] px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-purple-500"
+                    minLength={2}
+                  />
+                </div>
               )}
-              <input
-                type="email"
-                name="email"
-                placeholder="voce@exemplo.com"
-                className="vp-input h-11 px-3 text-sm"
-                required
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="Sua senha"
-                className="vp-input mt-3 h-11 px-3 text-sm"
-                minLength={6}
-                required
-              />
 
-              <div className="mt-3 flex items-center gap-3">
+              <div className="mb-4">
+                <label className="mb-1 block text-xs text-gray-400">EMAIL</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="seu@email.com"
+                  className="w-full rounded-lg border border-white/10 bg-[#0f0f1a] px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-purple-500"
+                  required
+                />
+              </div>
+
+              <div className="mb-5">
+                <label className="mb-1 block text-xs text-gray-400">SENHA</label>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-white/10 bg-[#0f0f1a] px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-purple-500"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(false)}
-                  className="w-full rounded-[8px] border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                  className="flex-1 rounded-lg border border-white/10 py-3 text-gray-300 transition-colors hover:bg-white/5"
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="vp-btn-primary w-full px-4 py-2 text-sm font-semibold">
+                <button
+                  type="submit"
+                  className="flex-1 rounded-lg bg-purple-600 py-3 font-medium text-white transition-colors hover:bg-purple-500"
+                >
                   {authMode === 'signin' ? 'Entrar' : 'Criar Conta'}
                 </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setAuthMode((prev) => (prev === 'signin' ? 'signup' : 'signin'))}
-                className="mt-2 w-full text-center text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              >
-                {authMode === 'signin' ? 'Não tem conta? Criar agora' : 'Já tem conta? Entrar'}
-              </button>
+              <p className="mt-4 text-center text-sm text-gray-500">
+                {authMode === 'signin' ? 'Não tem conta? ' : 'Já tem conta? '}
+                <button
+                  type="button"
+                  onClick={() => setAuthMode((prev) => (prev === 'signin' ? 'signup' : 'signin'))}
+                  className="text-purple-400 hover:text-purple-300"
+                >
+                  {authMode === 'signin' ? 'Criar agora' : 'Entrar'}
+                </button>
+              </p>
             </form>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            sessionStorage.setItem('redirect_after_login', location.pathname);
+            setAuthMode('signin');
+            setShowEmailModal(true);
+          }}
+          className="vp-btn-ghost px-4 py-2 text-sm font-semibold"
+        >
+          Entrar
+        </button>
+        <button
+          onClick={() => {
+            sessionStorage.setItem('redirect_after_login', location.pathname);
+            setAuthMode('signup');
+            setShowEmailModal(true);
+          }}
+          className="vp-btn-primary px-4 py-2 text-sm font-semibold"
+        >
+          Criar Conta
+        </button>
+      </div>
+      {authModal}
     </>
   );
 };
