@@ -89,6 +89,13 @@ export type VaultMutationInput = {
   token: string;
 };
 
+export type TransakDepositInput = {
+  orderId: string;
+  amount: number;
+  currency?: string;
+  fiatAmount?: number;
+};
+
 export type LeaderboardFilters = {
   period?: '7d' | '30d' | 'all';
   category?: string;
@@ -130,6 +137,8 @@ export const api = {
     request<any>('/api/vault/deposit', { method: 'POST', body: JSON.stringify(data) }),
   registerVaultWithdrawal: (data: VaultMutationInput) =>
     request<any>('/api/vault/withdraw', { method: 'POST', body: JSON.stringify(data) }),
+  registerTransakDeposit: (data: TransakDepositInput) =>
+    request<any>('/api/vault/transak-deposit', { method: 'POST', body: JSON.stringify(data) }),
 
   getAdminStats: () => request<any>('/api/admin/stats'),
   getFinancialOverview: () => request<any>('/api/finance/overview'),

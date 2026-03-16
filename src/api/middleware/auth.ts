@@ -35,7 +35,7 @@ const supabaseAdmin =
 
 // Simple API key authentication
 export const apiKeyAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith('/auth')) {
+  if (req.path.startsWith('/auth') || req.path.startsWith('/vault/transak-webhook')) {
     return next();
   }
 

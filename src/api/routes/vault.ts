@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { Prisma, TxType } from '@prisma/client';
 import { ethers } from 'ethers';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
@@ -20,6 +21,13 @@ const vaultMutationSchema = z.object({
   txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
   amount: z.union([z.string().regex(/^\d+(\.\d+)?$/), z.number().positive()]),
   token: z.string().min(2).max(10).default('USDT'),
+});
+
+const transakDepositSchema = z.object({
+  orderId: z.string().min(3),
+  amount: z.union([z.number().positive(), z.string().regex(/^\d+(\.\d+)?$/)]),
+  currency: z.string().min(2).max(10).optional(),
+  fiatAmount: z.union([z.number().positive(), z.string().regex(/^\d+(\.\d+)?$/)]).optional(),
 });
 
 // Initialize provider
@@ -142,6 +150,119 @@ router.post('/withdraw', authenticate, async (req: AuthenticatedRequest, res: Re
   } catch (error) {
     console.error('Error registering vault withdrawal:', error);
     return res.status(500).json({ success: false, error: 'Failed to register withdrawal' });
+  }
+});
+
+router.post('/transak-deposit', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const parsed = transakDepositSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: 'Invalid payload', details: parsed.error.flatten() });
+    }
+
+    const payload = parsed.data;
+    const txHash = `transak_${payload.orderId}`;
+    const token = String(payload.currency || 'USDC').toUpperCase();
+
+    const existing = await prisma.transaction.findUnique({
+      where: { txHash },
+      select: { id: true, userId: true },
+    });
+
+    if (existing) {
+      if (existing.userId === userId) {
+        return res.status(200).json({ success: true, duplicated: true });
+      }
+
+      return res.status(409).json({ success: false, error: 'Transaction already registered' });
+    }
+
+    const created = await prisma.transaction.create({
+      data: {
+        userId,
+        type: TxType.DEPOSIT,
+        amount: toDecimal(payload.amount),
+        token,
+        txHash,
+        status: 'pending',
+      },
+      select: {
+        id: true,
+        txHash: true,
+        amount: true,
+        token: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        ...created,
+        amount: created.amount.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error registering Transak deposit:', error);
+    return res.status(500).json({ success: false, error: 'Failed to register Transak deposit' });
+  }
+});
+
+router.post('/transak-webhook', async (req: Request, res: Response) => {
+  try {
+    const expectedSignature = process.env.TRANSAK_WEBHOOK_SECRET;
+    const incomingSignature =
+      (req.headers['x-transak-signature'] as string | undefined) ||
+      (req.headers['x-transak-webhook-secret'] as string | undefined);
+
+    if (expectedSignature) {
+      if (!incomingSignature) {
+        return res.status(401).json({ success: false, error: 'Missing Transak webhook signature' });
+      }
+
+      const digest = crypto
+        .createHmac('sha256', expectedSignature)
+        .update(JSON.stringify(req.body || {}))
+        .digest('hex');
+
+      const signatureMatchesSecret = incomingSignature === expectedSignature;
+      const signatureMatchesDigest = incomingSignature === digest;
+
+      if (!signatureMatchesSecret && !signatureMatchesDigest) {
+        return res.status(401).json({ success: false, error: 'Invalid Transak webhook signature' });
+      }
+    }
+
+    const payload = req.body?.webhookData || req.body?.data || req.body || {};
+    const orderId = String(payload?.id || payload?.orderId || '').trim();
+    const status = String(payload?.status || '').toUpperCase();
+
+    if (!orderId || !status) {
+      return res.status(400).json({ success: false, error: 'Invalid webhook payload' });
+    }
+
+    const txStatus =
+      status === 'COMPLETED' || status === 'SUCCESS' || status === 'ORDER_COMPLETED'
+        ? 'confirmed'
+        : status === 'FAILED' || status === 'CANCELLED' || status === 'ORDER_FAILED'
+          ? 'failed'
+          : 'pending';
+
+    await prisma.transaction.updateMany({
+      where: { txHash: `transak_${orderId}` },
+      data: { status: txStatus },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Transak webhook error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to process Transak webhook' });
   }
 });
 

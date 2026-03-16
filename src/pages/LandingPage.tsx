@@ -146,6 +146,14 @@ export const LandingPage: React.FC<{
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-xs text-gray-500">Deposite com:</span>
+              <span className="rounded bg-white/10 px-2 py-1 text-xs text-gray-300">PIX</span>
+              <span className="rounded bg-white/10 px-2 py-1 text-xs text-gray-300">Cartão</span>
+              <span className="rounded bg-white/10 px-2 py-1 text-xs text-gray-300">USDT</span>
+              <span className="rounded bg-white/10 px-2 py-1 text-xs text-gray-300">USDC</span>
+            </div>
           </div>
 
           <div className="mt-11 grid gap-4 md:grid-cols-3">
