@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Trophy, Wallet, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock3, Trophy, Wallet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Market } from '../types';
 import { useWeb3 } from '../hooks/useWeb3';
@@ -14,6 +14,7 @@ interface PredictionInterfaceProps {
 }
 
 const PLATFORM_FEE = 0.03;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const clampAmount = (value: number, max: number) => {
   if (!Number.isFinite(value)) return 0;
@@ -95,16 +96,25 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const noProbability = totalPool > 0 ? (totalNo / totalPool) * 100 : market.naoProbability;
 
   const normalizedAmount = clampAmount(Number(amount), balanceNumber);
-  const potentialReturn = side ? calculateReturn(normalizedAmount, side, totalYes, totalNo) : 0;
   const selectedMultiplier = side === 'YES' ? yesMultiplier : side === 'NO' ? noMultiplier : 0;
-  const impliedProbability = selectedMultiplier > 0 ? (1 / selectedMultiplier) * 100 : 0;
-  const potentialProfit = Math.max(0, potentialReturn - normalizedAmount);
+  const potentialReturn = side ? calculateReturn(normalizedAmount, side, totalYes, totalNo) : 0;
+  const potentialProfit = potentialReturn - normalizedAmount;
+  const yesProbabilityPercent = clamp(Number.isFinite(yesProbability) ? yesProbability : 50, 0, 100);
+  const noProbabilityPercent = clamp(Number.isFinite(noProbability) ? noProbability : 50, 0, 100);
+  const hasPositiveAmount = normalizedAmount > 0;
+  const hasMinimumAmount = normalizedAmount >= 5;
+  const hasSufficientBalance = normalizedAmount <= balanceNumber;
   const isWrongNetwork = isWalletConnected && Boolean(chainId && chainId !== expectedChainId);
   const chainName = expectedChainId === 137 ? 'Polygon Mainnet' : 'Polygon Amoy (Testnet)';
+  const shouldDisablePrimary =
+    isLoading || (isWalletConnected && !isWrongNetwork && (!side || !hasPositiveAmount || !hasMinimumAmount || !hasSufficientBalance));
+  const primaryAmountLabel = hasPositiveAmount
+    ? toCurrency(normalizedAmount).replace(',00', '').replace(',0', '')
+    : '0';
 
   const handleQuickAmount = (value: number) => {
     const nextAmount = clampAmount(value, balanceNumber);
-    setAmount(nextAmount > 0 ? String(Math.floor(nextAmount)) : '0');
+    setAmount(nextAmount > 0 ? String(Number(nextAmount.toFixed(2))) : '0');
   };
 
   const handlePlaceBet = async () => {
@@ -156,6 +166,20 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
     } finally {
       setIsClaiming(false);
     }
+  };
+
+  const handlePrimaryAction = async () => {
+    if (!isWalletConnected) {
+      await connectWallet();
+      return;
+    }
+
+    if (isWrongNetwork) {
+      await switchChain(expectedChainId);
+      return;
+    }
+
+    await handlePlaceBet();
   };
 
   if (isClosed && market.status === 'resolved' && position.hasPosition && !position.claimed && userWon) {
@@ -260,129 +284,163 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         </select>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
+        <p className="mb-1 text-xs uppercase tracking-wider text-gray-500">Faça sua previsão</p>
+        <p className="text-sm leading-relaxed text-gray-300">{market.title}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => setSide('YES')}
-          className={`rounded-[10px] border px-4 py-4 text-left transition-all ${
+          className={`rounded-xl border-2 p-4 text-left transition-all ${
             side === 'YES'
-              ? 'border-[rgba(16,185,129,0.5)] bg-[rgba(16,185,129,0.14)]'
-              : 'border-[var(--border)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(16,185,129,0.35)]'
+              ? 'border-green-500 bg-green-500/10'
+              : 'border-white/10 bg-white/5 hover:border-green-500/50'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#6ee7b7]">
-              <CheckCircle2 className="h-4 w-4" /> SIM
-            </span>
-            <span className="mono-value text-sm font-bold text-[#fbbf24]">{yesMultiplier.toFixed(2)}x</span>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-lg text-green-400">✓</span>
+            <span className="text-lg font-bold text-white">SIM</span>
           </div>
-          <p className="mono-value mt-1 text-xs text-[var(--text-secondary)]">{yesProbability.toFixed(1)}% prob.</p>
+          <div className="mono-value text-2xl font-bold text-green-400">{yesMultiplier.toFixed(2)}x</div>
+          <div className="mt-1 text-xs text-gray-400">{yesProbabilityPercent.toFixed(1)}% prob.</div>
+          <div className="mt-2 h-1.5 rounded-full bg-white/10">
+            <div className="h-1.5 rounded-full bg-green-400 transition-all" style={{ width: `${yesProbabilityPercent}%` }} />
+          </div>
         </button>
 
         <button
           onClick={() => setSide('NO')}
-          className={`rounded-[10px] border px-4 py-4 text-left transition-all ${
+          className={`rounded-xl border-2 p-4 text-left transition-all ${
             side === 'NO'
-              ? 'border-[rgba(239,68,68,0.5)] bg-[rgba(239,68,68,0.14)]'
-              : 'border-[var(--border)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(239,68,68,0.35)]'
+              ? 'border-red-500 bg-red-500/10'
+              : 'border-white/10 bg-white/5 hover:border-red-500/50'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#fda4af]">
-              <XCircle className="h-4 w-4" /> NÃO
-            </span>
-            <span className="mono-value text-sm font-bold text-[#fbbf24]">{noMultiplier.toFixed(2)}x</span>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-lg text-red-400">✗</span>
+            <span className="text-lg font-bold text-white">NÃO</span>
           </div>
-          <p className="mono-value mt-1 text-xs text-[var(--text-secondary)]">{noProbability.toFixed(1)}% prob.</p>
+          <div className="mono-value text-2xl font-bold text-red-400">{noMultiplier.toFixed(2)}x</div>
+          <div className="mt-1 text-xs text-gray-400">{noProbabilityPercent.toFixed(1)}% prob.</div>
+          <div className="mt-2 h-1.5 rounded-full bg-white/10">
+            <div className="h-1.5 rounded-full bg-red-400 transition-all" style={{ width: `${noProbabilityPercent}%` }} />
+          </div>
         </button>
       </div>
 
-      {side && (
-        <>
-          <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium text-[var(--text-secondary)]">Valor da aposta</p>
-              <div className="mono-value text-2xl font-bold text-[var(--text-primary)]">${amount || '0'}</div>
-            </div>
+      <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-medium text-[var(--text-secondary)]">Valor da aposta</p>
+          <div className="mono-value text-2xl font-bold text-[var(--text-primary)]">${amount || '0'}</div>
+        </div>
 
-            <div className="mb-3 flex flex-wrap gap-2">
-              {[10, 25, 50, 100].map((value) => (
-                <button
-                  key={value}
-                  onClick={() => handleQuickAmount(value)}
-                  className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-                >
-                  ${value}
-                </button>
-              ))}
-              <button
-                onClick={() => handleQuickAmount(balanceNumber)}
-                className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-              >
-                MAX
-              </button>
-            </div>
-
-            <input
-              type="number"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="0.00"
-              min={5}
-              max={balanceNumber}
-              step="0.01"
-              className="w-full rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[rgba(124,58,237,0.5)] focus:outline-none"
-            />
-          </div>
-
-          {normalizedAmount > 0 && (
-            <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(124,58,237,0.12)] p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Projeção da aposta</p>
-              <p className="mono-value mt-1 text-sm text-[var(--text-secondary)]">
-                Multiplicador atual: <span className="font-semibold text-[#fbbf24]">{selectedMultiplier.toFixed(2)}x</span>{' '}
-                · {impliedProbability.toFixed(1)}% prob. implícita
-              </p>
-              <p className="mono-value mt-2 text-lg font-semibold text-[var(--text-primary)]">
-                Ganho potencial: ${toCurrency(potentialReturn)}
-              </p>
-              <p className="mono-value mt-1 text-sm text-[#6ee7b7]">
-                Lucro potencial: +${toCurrency(potentialProfit)}
-              </p>
-            </div>
-          )}
-
-          {isLoading && (
-            <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-3 text-xs">
-              <div className={`rounded px-2 py-1 ${['approving', 'waiting_approval'].includes(step) ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                1. Aprovando
-              </div>
-              <span className="text-[var(--text-muted)]">→</span>
-              <div className={`rounded px-2 py-1 ${['betting', 'waiting_bet'].includes(step) ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                2. Confirmando
-              </div>
-              <span className="text-[var(--text-muted)]">→</span>
-              <div className={`rounded px-2 py-1 ${step === 'success' ? 'bg-[rgba(16,185,129,0.2)] text-[#6ee7b7]' : 'text-[var(--text-secondary)]'}`}>
-                3. Registrado
-              </div>
-            </div>
-          )}
-
+        <div className="mb-3 flex flex-wrap gap-2">
+          {[10, 25, 50, 100].map((value) => (
+            <button
+              key={value}
+              onClick={() => handleQuickAmount(value)}
+              className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              ${value}
+            </button>
+          ))}
           <button
-            onClick={handlePlaceBet}
-            disabled={isLoading || !amount || Number(amount) <= 0 || Number(amount) > balanceNumber || !isWalletConnected}
-            className={`mt-5 w-full rounded-[8px] px-4 py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
-              side === 'NO' ? 'bg-[rgba(239,68,68,0.85)] text-white' : 'vp-btn-primary'
-            }`}
+            onClick={() => handleQuickAmount(balanceNumber)}
+            className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
           >
-            {!isWalletConnected
-              ? 'Conecte a carteira para confirmar'
-              : isLoading
-                ? 'Processando...'
-                : `Apostar $${amount || '0'} em ${side === 'YES' ? 'SIM' : 'NÃO'}`}
+            MAX
           </button>
+        </div>
 
-          <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Taxa da plataforma: 3% sobre apostas perdedoras</p>
-        </>
+        <input
+          type="number"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          placeholder="0.00"
+          min={5}
+          max={balanceNumber}
+          step="0.01"
+          className="w-full rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[rgba(124,58,237,0.5)] focus:outline-none"
+        />
+      </div>
+
+      {hasPositiveAmount && side && (
+        <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-400">Ganho potencial</span>
+            <span className="mono-value text-lg font-bold text-white">${toCurrency(potentialReturn)}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-sm text-gray-400">Lucro estimado</span>
+            <span className={`mono-value text-sm font-medium ${potentialProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {potentialProfit >= 0 ? '+' : ''}${toCurrency(potentialProfit)}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-sm text-gray-400">Multiplicador</span>
+            <span className="mono-value text-sm font-medium text-amber-400">{selectedMultiplier.toFixed(2)}x</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-xs text-gray-500">Taxa plataforma (3%)</span>
+            <span className="mono-value text-xs text-gray-500">-${toCurrency(normalizedAmount * PLATFORM_FEE)} (se perder)</span>
+          </div>
+        </div>
       )}
+
+      {isLoading && (
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-3 text-xs">
+          <div className={`rounded px-2 py-1 ${['approving', 'waiting_approval'].includes(step) ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+            1. Aprovando
+          </div>
+          <span className="text-[var(--text-muted)]">→</span>
+          <div className={`rounded px-2 py-1 ${['betting', 'waiting_bet'].includes(step) ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+            2. Confirmando
+          </div>
+          <span className="text-[var(--text-muted)]">→</span>
+          <div className={`rounded px-2 py-1 ${step === 'success' ? 'bg-[rgba(16,185,129,0.2)] text-[#6ee7b7]' : 'text-[var(--text-secondary)]'}`}>
+            3. Registrado
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => void handlePrimaryAction()}
+        disabled={shouldDisablePrimary}
+        className={`mt-5 w-full rounded-xl py-4 text-lg font-bold transition-all ${
+          shouldDisablePrimary
+            ? 'cursor-not-allowed bg-white/5 text-gray-500'
+            : !isWalletConnected
+              ? 'bg-blue-500 text-white hover:bg-blue-400'
+              : isWrongNetwork
+                ? 'bg-amber-500 text-black hover:bg-amber-400'
+                : side === 'YES'
+                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/20 hover:bg-green-400'
+                  : side === 'NO'
+                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-400'
+                    : 'cursor-not-allowed bg-white/5 text-gray-500'
+        }`}
+      >
+        {!isWalletConnected
+          ? '🔗 Conectar carteira para apostar'
+          : isWrongNetwork
+            ? `Trocar para ${chainName}`
+            : isLoading
+              ? 'Processando...'
+              : !side
+                ? 'Selecione SIM ou NÃO'
+                : !hasPositiveAmount
+                  ? 'Digite o valor da aposta'
+                  : !hasMinimumAmount
+                    ? 'Valor mínimo: $5.00'
+                    : !hasSufficientBalance
+                      ? 'Saldo insuficiente'
+                      : side === 'YES'
+                        ? `Apostar $${primaryAmountLabel} em SIM →`
+                        : `Apostar $${primaryAmountLabel} em NÃO →`}
+      </button>
+
+      <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Taxa da plataforma: 3% sobre apostas perdedoras</p>
 
       {position.hasPosition && (
         <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">

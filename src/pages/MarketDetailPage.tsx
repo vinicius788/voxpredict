@@ -251,62 +251,67 @@ export const MarketDetailPage: React.FC<{
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-            <div className="space-y-6">
-              <section className="vp-card p-6">
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <span className="rounded-[999px] border border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.2)] px-2.5 py-1 text-xs font-semibold text-[#c4b5fd]">
-                    {market.category}
-                  </span>
-                  <span
-                    className={`rounded-[999px] border px-2.5 py-1 text-xs font-semibold ${
-                      isActive
-                        ? 'border-[rgba(16,185,129,0.45)] bg-[rgba(16,185,129,0.18)] text-[#6ee7b7]'
-                        : 'border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.18)] text-[#fcd34d]'
-                    }`}
-                  >
-                    {isActive ? 'Ativo' : 'Finalizado'}
-                  </span>
-                </div>
-
-                <h1 className="text-3xl font-bold text-[var(--text-primary)] md:text-4xl">{market.title}</h1>
-
-                <p className={`mt-4 text-sm leading-relaxed text-[var(--text-secondary)] ${showFullDescription ? '' : 'line-clamp-3'}`}>
-                  {market.description}
-                </p>
-                <button
-                  onClick={() => setShowFullDescription((prev) => !prev)}
-                  className="mt-2 text-sm font-medium text-[#a78bfa] transition-colors hover:text-[#c4b5fd]"
+          <div className="space-y-6">
+            <section className="vp-card p-6">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="rounded-[999px] border border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.2)] px-2.5 py-1 text-xs font-semibold text-[#c4b5fd]">
+                  {market.category}
+                </span>
+                <span
+                  className={`rounded-[999px] border px-2.5 py-1 text-xs font-semibold ${
+                    isActive
+                      ? 'border-[rgba(16,185,129,0.45)] bg-[rgba(16,185,129,0.18)] text-[#6ee7b7]'
+                      : 'border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.18)] text-[#fcd34d]'
+                  }`}
                 >
-                  {showFullDescription ? 'Ver menos' : 'Ver mais'}
-                </button>
+                  {isActive ? 'Ativo' : 'Finalizado'}
+                </span>
+              </div>
 
-                <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                    <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                      <DollarSign className="h-3.5 w-3.5" /> Volume
-                    </p>
-                    <p className="mono-value text-xl font-bold text-[var(--text-primary)]">
-                      ${market.totalVolume.toLocaleString('pt-BR')}
-                    </p>
-                  </div>
+              <h1 className="text-3xl font-bold text-[var(--text-primary)] md:text-4xl">{market.title}</h1>
 
-                  <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                    <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                      <Users className="h-3.5 w-3.5" /> Participantes
-                    </p>
-                    <p className="mono-value text-xl font-bold text-[var(--text-primary)]">{market.totalBettors}</p>
-                  </div>
+              <p className={`mt-4 text-sm leading-relaxed text-[var(--text-secondary)] ${showFullDescription ? '' : 'line-clamp-3'}`}>
+                {market.description}
+              </p>
+              <button
+                onClick={() => setShowFullDescription((prev) => !prev)}
+                className="mt-2 text-sm font-medium text-[#a78bfa] transition-colors hover:text-[#c4b5fd]"
+              >
+                {showFullDescription ? 'Ver menos' : 'Ver mais'}
+              </button>
 
-                  <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                    <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                      <Clock3 className="h-3.5 w-3.5" /> Encerra em
-                    </p>
-                    <p className="mono-value text-xl font-bold text-[var(--text-primary)]">{countdown}</p>
-                  </div>
+              <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
+                  <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                    <DollarSign className="h-3.5 w-3.5" /> Volume
+                  </p>
+                  <p className="mono-value text-xl font-bold text-[var(--text-primary)]">
+                    ${market.totalVolume.toLocaleString('pt-BR')}
+                  </p>
                 </div>
-              </section>
 
+                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
+                  <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                    <Users className="h-3.5 w-3.5" /> Participantes
+                  </p>
+                  <p className="mono-value text-xl font-bold text-[var(--text-primary)]">{market.totalBettors}</p>
+                </div>
+
+                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
+                  <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                    <Clock3 className="h-3.5 w-3.5" /> Encerra em
+                  </p>
+                  <p className="mono-value text-xl font-bold text-[var(--text-primary)]">{countdown}</p>
+                </div>
+              </div>
+            </section>
+
+            <div className="lg:hidden">
+              <PredictionInterface market={market} />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="space-y-6 lg:col-span-2">
               <section className="vp-card p-5">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-lg font-semibold text-[var(--text-primary)]">Histórico de Probabilidades</h2>
@@ -434,11 +439,12 @@ export const MarketDetailPage: React.FC<{
                   </ResponsiveContainer>
                 </div>
               </section>
+              </div>
 
-              <PredictionInterface market={market} />
-            </div>
-
-            <aside className="space-y-5">
+              <aside className="space-y-5">
+                <div className="hidden lg:block">
+                  <PredictionInterface market={market} />
+                </div>
               <section className="vp-card p-5">
                 <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Informações do Contrato</h2>
 
@@ -509,7 +515,8 @@ export const MarketDetailPage: React.FC<{
                   ) : null}
                 </div>
               </section>
-            </aside>
+              </aside>
+            </div>
           </div>
         )}
       </main>
