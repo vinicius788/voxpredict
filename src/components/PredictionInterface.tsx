@@ -8,6 +8,7 @@ import { usePlaceBet } from '../hooks/usePlaceBet';
 import { useClaimWinnings } from '../hooks/useClaimWinnings';
 import { useUserPosition } from '../hooks/useUserPosition';
 import { SUPPORTED_TOKENS, type SupportedToken } from '../lib/constants';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PredictionInterfaceProps {
   market: Market;
@@ -46,11 +47,15 @@ const calculateMultiplier = (totalYes: number, totalNo: number, side: 'YES' | 'N
   return (winningPool + losingPool * (1 - PLATFORM_FEE)) / winningPool;
 };
 
-const calculateReturn = (amount: number, side: 'YES' | 'NO', totalYes: number, totalNo: number) =>
-  amount * calculateMultiplier(totalYes, totalNo, side);
+const sanitizeOdds = (value: number | undefined | null, fallback: number) => {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  return fallback;
+};
 
 export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market }) => {
   const { isWalletConnected, connectWallet, chainId, switchChain } = useWeb3();
+  const { isSignedIn, isLoaded } = useAuth();
   const expectedChainId = Number(import.meta.env.VITE_CHAIN_ID || 80002);
 
   const forcedToken = (market.token || '').toUpperCase();
@@ -96,9 +101,14 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const noProbability = totalPool > 0 ? (totalNo / totalPool) * 100 : market.naoProbability;
 
   const normalizedAmount = clampAmount(Number(amount), balanceNumber);
-  const selectedMultiplier = side === 'YES' ? yesMultiplier : side === 'NO' ? noMultiplier : 0;
-  const potentialReturn = side ? calculateReturn(normalizedAmount, side, totalYes, totalNo) : 0;
+  const effectiveYesOdds = sanitizeOdds(market.yesOdds, sanitizeOdds(market.simOdds, yesMultiplier));
+  const effectiveNoOdds = sanitizeOdds(market.noOdds, sanitizeOdds(market.naoOdds, noMultiplier));
+  const selectedSide = side ?? 'YES';
+  const selectedMultiplier = selectedSide === 'YES' ? effectiveYesOdds : effectiveNoOdds;
+  const potentialReturn = normalizedAmount * selectedMultiplier;
   const potentialProfit = potentialReturn - normalizedAmount;
+  const yesPotentialReturn = normalizedAmount * effectiveYesOdds;
+  const noPotentialReturn = normalizedAmount * effectiveNoOdds;
   const yesProbabilityPercent = clamp(Number.isFinite(yesProbability) ? yesProbability : 50, 0, 100);
   const noProbabilityPercent = clamp(Number.isFinite(noProbability) ? noProbability : 50, 0, 100);
   const hasPositiveAmount = normalizedAmount > 0;
@@ -170,7 +180,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
   const handlePrimaryAction = async () => {
     if (!isWalletConnected) {
-      await connectWallet();
+      await handleConnectWallet();
       return;
     }
 
@@ -180,6 +190,21 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
     }
 
     await handlePlaceBet();
+  };
+
+  const handleConnectWallet = async () => {
+    if (!isLoaded) {
+      toast.error('Aguarde, validando sua sessão.');
+      return;
+    }
+
+    if (!isSignedIn) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signin' } }));
+      toast.error('Faça login primeiro para conectar sua carteira');
+      return;
+    }
+
+    await connectWallet();
   };
 
   if (isClosed && market.status === 'resolved' && position.hasPosition && !position.claimed && userWon) {
@@ -242,7 +267,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
             Você já pode montar sua aposta. Para confirmar na blockchain, conecte a carteira.
           </p>
           <button
-            onClick={() => void connectWallet()}
+            onClick={() => void handleConnectWallet()}
             className="mt-3 inline-flex items-center gap-2 rounded-[8px] border border-[rgba(59,130,246,0.45)] bg-[rgba(59,130,246,0.25)] px-4 py-2 text-sm font-semibold text-[#bfdbfe]"
           >
             <Wallet className="h-4 w-4" />
@@ -365,7 +390,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         />
       </div>
 
-      {hasPositiveAmount && side && (
+      {hasPositiveAmount && (
         <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Ganho potencial</span>
@@ -381,6 +406,18 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
             <span className="text-sm text-gray-400">Multiplicador</span>
             <span className="mono-value text-sm font-medium text-amber-400">{selectedMultiplier.toFixed(2)}x</span>
           </div>
+          {!side && (
+            <>
+              <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
+                <span className="text-xs text-gray-500">Estimativa em SIM</span>
+                <span className="mono-value text-xs text-green-400">${toCurrency(yesPotentialReturn)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Estimativa em NÃO</span>
+                <span className="mono-value text-xs text-red-400">${toCurrency(noPotentialReturn)}</span>
+              </div>
+            </>
+          )}
           <div className="mt-1 flex items-center justify-between">
             <span className="text-xs text-gray-500">Taxa plataforma (3%)</span>
             <span className="mono-value text-xs text-gray-500">-${toCurrency(normalizedAmount * PLATFORM_FEE)} (se perder)</span>
@@ -422,7 +459,9 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         }`}
       >
         {!isWalletConnected
-          ? '🔗 Conectar carteira para apostar'
+          ? isSignedIn
+            ? '🔗 Conectar carteira para apostar'
+            : 'Faça login para conectar carteira'
           : isWrongNetwork
             ? `Trocar para ${chainName}`
             : isLoading
