@@ -9,6 +9,7 @@ import { TreasuryDashboard } from './pages/TreasuryDashboard';
 import { TermsOfService } from './pages/TermsOfService';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { Compliance } from './pages/Compliance';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { AdminRoute } from './components/AdminRoute';
 import { useAuth } from './contexts/AuthContext';
 import { useRealtimeNotifications } from './hooks/useRealtimeNotifications';
@@ -41,6 +42,7 @@ function App() {
           }
         />
         <Route path="/market/:marketAddress" element={<MarketDetailPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/oracle" element={<OracleDashboard />} />
         <Route path="/treasury" element={<TreasuryDashboard />} />
         <Route path="/terms" element={<TermsOfService />} />

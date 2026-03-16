@@ -13,6 +13,7 @@ import vaultRouter from './vault';
 import categoriesRouter from './categories';
 import proposalsRouter from './proposals';
 import templatesRouter from './templates';
+import leaderboardRouter from './leaderboard';
 
 const router = express.Router();
 
@@ -30,5 +31,6 @@ router.use('/vault', vaultRouter);
 router.use('/categories', categoriesRouter);
 router.use('/proposals', proposalsRouter);
 router.use('/templates', templatesRouter);
+router.use('/leaderboard', leaderboardRouter);
 
 export default router;

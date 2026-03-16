@@ -89,6 +89,12 @@ export type VaultMutationInput = {
   token: string;
 };
 
+export type LeaderboardFilters = {
+  period?: '7d' | '30d' | 'all';
+  category?: string;
+  limit?: number;
+};
+
 export const api = {
   getMarkets: (params?: MarketFilters) => {
     const query = new URLSearchParams();
@@ -127,6 +133,15 @@ export const api = {
 
   getAdminStats: () => request<any>('/api/admin/stats'),
   getFinancialOverview: () => request<any>('/api/finance/overview'),
+  getLeaderboard: (params?: LeaderboardFilters) => {
+    const query = new URLSearchParams();
+    if (params?.period) query.set('period', params.period);
+    if (params?.category) query.set('category', params.category);
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return request<any>(`/api/leaderboard${qs ? `?${qs}` : ''}`);
+  },
+  getMyLeaderboard: () => request<any>('/api/leaderboard/me'),
 
   getCategories: (params?: { includeInactive?: boolean }) => {
     const query = new URLSearchParams();

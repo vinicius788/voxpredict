@@ -138,6 +138,7 @@ const marketTemplates = [
 ];
 
 const randomBetween = (min: number, max: number) => Math.random() * (max - min) + min;
+const adminEmail = (process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
 
 async function seed() {
   await prisma.position.deleteMany({
@@ -221,6 +222,23 @@ async function seed() {
         active: true,
       },
     });
+  }
+
+  if (adminEmail) {
+    const adminUser = await prisma.user.findFirst({
+      where: { email: adminEmail },
+      select: { id: true, username: true },
+    });
+
+    if (adminUser && !adminUser.username) {
+      await prisma.user.update({
+        where: { id: adminUser.id },
+        data: {
+          username: 'vox_admin',
+          isPublicProfile: true,
+        },
+      });
+    }
   }
 }
 

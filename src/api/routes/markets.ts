@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middleware/auth';
+import { updateUserRankings } from '../jobs/update-rankings';
 
 const router = express.Router();
 const PLATFORM_FEE_RATE = 0.03;
@@ -384,6 +385,12 @@ router.post('/:id/resolve', authenticate, requireAdmin, async (req: Authenticate
       });
     }
 
+    try {
+      await updateUserRankings();
+    } catch (rankingError) {
+      console.error('Failed to update rankings after resolve:', rankingError);
+    }
+
     return res.status(200).json({ success: true, data: mapMarket(updated) });
   } catch (error) {
     console.error('Error resolving market:', error);
@@ -406,6 +413,12 @@ router.delete('/:id', authenticate, requireAdmin, async (req: AuthenticatedReque
         resolvedAt: new Date(),
       },
     });
+
+    try {
+      await updateUserRankings();
+    } catch (rankingError) {
+      console.error('Failed to update rankings after cancel:', rankingError);
+    }
 
     return res.status(200).json({ success: true, data: mapMarket(updated) });
   } catch (error) {

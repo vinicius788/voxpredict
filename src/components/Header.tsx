@@ -17,6 +17,7 @@ export const Header: React.FC = () => {
   const navItems = [
     { path: '/', label: 'Início' },
     { path: '/dashboard', label: 'Mercados' },
+    { path: '/leaderboard', label: '🏆 Ranking' },
     { path: '/user-dashboard', label: 'Meu Dashboard', requiresAuth: true },
     { path: '/admin', label: 'Admin', requiresAuth: true, adminOnly: true },
   ];
