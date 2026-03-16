@@ -8,7 +8,6 @@ import {
   DollarSign,
   ExternalLink,
   Lock,
-  Share2,
   ShieldCheck,
   Users,
 } from 'lucide-react';
@@ -31,6 +30,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { PredictionInterface } from '../components/PredictionInterface';
+import { ShareMarketButton } from '../components/ShareMarketButton';
 import { Market } from '../types';
 import { useMarket, useMarketHistory } from '../hooks/useMarkets';
 
@@ -54,6 +54,18 @@ const formatCompactCurrency = (value: number) => {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}k`;
   return `$${value.toFixed(0)}`;
+};
+
+const upsertMetaTag = (attribute: 'property' | 'name', key: string, value: string) => {
+  let tag = document.head.querySelector(`meta[${attribute}="${key}"]`) as HTMLMetaElement | null;
+
+  if (!tag) {
+    tag = document.createElement('meta');
+    tag.setAttribute(attribute, key);
+    document.head.appendChild(tag);
+  }
+
+  tag.setAttribute('content', value);
 };
 
 export const MarketDetailPage: React.FC<{
@@ -84,6 +96,55 @@ export const MarketDetailPage: React.FC<{
     const interval = setInterval(tick, 60_000);
 
     return () => clearInterval(interval);
+  }, [market]);
+
+  useEffect(() => {
+    if (!market) return;
+
+    const previousTitle = document.title;
+    const previousDescription =
+      (document.querySelector('meta[name="description"]') as HTMLMetaElement | null)?.content || '';
+    const previousOgTitle =
+      (document.querySelector('meta[property="og:title"]') as HTMLMetaElement | null)?.content || '';
+    const previousOgDescription =
+      (document.querySelector('meta[property="og:description"]') as HTMLMetaElement | null)?.content || '';
+    const previousOgUrl =
+      (document.querySelector('meta[property="og:url"]') as HTMLMetaElement | null)?.content || '';
+    const previousTwitterTitle =
+      (document.querySelector('meta[name="twitter:title"]') as HTMLMetaElement | null)?.content || '';
+    const previousTwitterDescription =
+      (document.querySelector('meta[name="twitter:description"]') as HTMLMetaElement | null)?.content || '';
+    const previousOgImage =
+      (document.querySelector('meta[property="og:image"]') as HTMLMetaElement | null)?.content || '';
+    const previousTwitterImage =
+      (document.querySelector('meta[name="twitter:image"]') as HTMLMetaElement | null)?.content || '';
+
+    const description = market.description.length > 180 ? `${market.description.slice(0, 177)}...` : market.description;
+    const pageUrl = window.location.href;
+    const title = `${market.title} | VoxPredict`;
+    const imageUrl = 'https://voxpredict.vercel.app/og-image.png';
+
+    document.title = title;
+    upsertMetaTag('name', 'description', description);
+    upsertMetaTag('property', 'og:title', title);
+    upsertMetaTag('property', 'og:description', description);
+    upsertMetaTag('property', 'og:url', pageUrl);
+    upsertMetaTag('property', 'og:image', imageUrl);
+    upsertMetaTag('name', 'twitter:title', title);
+    upsertMetaTag('name', 'twitter:description', description);
+    upsertMetaTag('name', 'twitter:image', imageUrl);
+
+    return () => {
+      document.title = previousTitle;
+      upsertMetaTag('name', 'description', previousDescription);
+      upsertMetaTag('property', 'og:title', previousOgTitle);
+      upsertMetaTag('property', 'og:description', previousOgDescription);
+      upsertMetaTag('property', 'og:url', previousOgUrl);
+      upsertMetaTag('property', 'og:image', previousOgImage);
+      upsertMetaTag('name', 'twitter:title', previousTwitterTitle);
+      upsertMetaTag('name', 'twitter:description', previousTwitterDescription);
+      upsertMetaTag('name', 'twitter:image', previousTwitterImage);
+    };
   }, [market]);
 
   const isActive = useMemo(
@@ -157,21 +218,6 @@ export const MarketDetailPage: React.FC<{
     return format(date, 'dd/MM');
   };
 
-  const shareMarket = async () => {
-    if (!market) return;
-
-    const url = window.location.href;
-    const text = `Confira este mercado da VoxPredict: ${market.title}`;
-
-    if (navigator.share) {
-      await navigator.share({ title: market.title, text, url });
-      return;
-    }
-
-    await navigator.clipboard.writeText(url);
-    toast.success('Link do mercado copiado.');
-  };
-
   const copyAddress = async () => {
     if (!contractAddress) return;
 
@@ -216,12 +262,17 @@ export const MarketDetailPage: React.FC<{
           </button>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={shareMarket}
-              className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-            >
-              <Share2 className="h-4 w-4" /> Compartilhar
-            </button>
+            {market ? (
+              <ShareMarketButton market={market} />
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] opacity-60"
+              >
+                ↗ Compartilhar
+              </button>
+            )}
             <a
               href={explorerUrl}
               target="_blank"
