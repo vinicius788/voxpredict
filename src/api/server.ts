@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const app = express();
-const PORT = Number(process.env.PORT || 3001);
+const PORT = parseInt(process.env.PORT || '3001', 10);
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const allowedOrigins = [
