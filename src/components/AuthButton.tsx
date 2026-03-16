@@ -5,6 +5,10 @@ import { ChevronDown, History, LogOut, Settings, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
+type OpenAuthModalDetail = {
+  mode?: 'signin' | 'signup';
+};
+
 export const AuthButton: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +29,20 @@ export const AuthButton: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handleOpenAuthModal = (event: Event) => {
+      const customEvent = event as CustomEvent<OpenAuthModalDetail>;
+      const mode = customEvent.detail?.mode === 'signup' ? 'signup' : 'signin';
+
+      sessionStorage.setItem('redirect_after_login', location.pathname);
+      setAuthMode(mode);
+      setShowEmailModal(true);
+    };
+
+    window.addEventListener('open-auth-modal', handleOpenAuthModal as EventListener);
+    return () => window.removeEventListener('open-auth-modal', handleOpenAuthModal as EventListener);
+  }, [location.pathname]);
 
   if (isSignedIn) {
     const initials = (user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase();

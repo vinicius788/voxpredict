@@ -98,6 +98,14 @@ export const LandingPage: React.FC<{
     await navigator.clipboard.writeText(url);
   };
 
+  const handleOpenAuthModal = (mode: 'signin' | 'signup') => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(new CustomEvent('open-auth-modal', {
+      detail: { mode },
+    }));
+  };
+
   return (
     <div className="app-shell pb-16 lg:pb-0">
       <Header />
@@ -124,14 +132,14 @@ export const LandingPage: React.FC<{
 
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => handleOpenAuthModal('signin')}
                 className="vp-btn-primary inline-flex items-center justify-center gap-2 px-7 py-3 text-sm font-semibold"
               >
                 <Zap className="h-4 w-4" />
                 Entrar
               </button>
               <button
-                onClick={() => navigate('/user-dashboard')}
+                onClick={() => handleOpenAuthModal('signup')}
                 className="vp-btn-ghost inline-flex items-center justify-center gap-2 px-7 py-3 text-sm font-semibold"
               >
                 Criar Conta
