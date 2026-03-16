@@ -113,15 +113,15 @@ export const AuthButton: React.FC = () => {
       </div>
 
       {showEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md bg-[#1e1e2e] rounded-2xl p-8 shadow-2xl border border-white/10">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+          <div className="w-full max-w-md bg-[#1e1e2e] rounded-2xl p-8 shadow-2xl border border-white/10 my-auto">
             <h2 className="text-xl font-bold text-[var(--text-primary)]">
-              {authMode === 'signin' ? 'Entrar na VoxPredict' : 'Criar conta na VoxPredict'}
+              {authMode === 'signin' ? 'Entrar no VoxPredict' : 'Criar conta no VoxPredict'}
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">Use email e senha para continuar na plataforma.</p>
 
             <form
-              className="mt-5"
+              className="mt-4"
               onSubmit={async (event) => {
                 event.preventDefault();
                 const formData = new FormData(event.currentTarget);
@@ -178,7 +178,7 @@ export const AuthButton: React.FC = () => {
                 required
               />
 
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(false)}
@@ -194,7 +194,7 @@ export const AuthButton: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAuthMode((prev) => (prev === 'signin' ? 'signup' : 'signin'))}
-                className="mt-3 w-full text-center text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="mt-2 w-full text-center text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               >
                 {authMode === 'signin' ? 'Não tem conta? Criar agora' : 'Já tem conta? Entrar'}
               </button>
