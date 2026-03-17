@@ -55,14 +55,34 @@ export function useClaimWinnings() {
     return Number(formatUnits(winnings as bigint, 6)).toFixed(2);
   };
 
-  const claim = async (marketId: number) => {
-    if (!contractAddress) {
+  const claim = async (marketId: number, options?: { offChain?: boolean }) => {
+    const isOffChain = options?.offChain === true;
+
+    if (!isOffChain && !contractAddress) {
       const error = 'Contrato não configurado. Defina VITE_CONTRACT_ADDRESS.';
       toast.error(error);
       throw new Error(error);
     }
 
     try {
+      if (isOffChain) {
+        toast.loading('Registrando saque de demonstração...', { id: 'claim' });
+        const response = await api.markPositionClaimed(marketId, undefined, true);
+        const amount = Number(response?.amount || 0);
+
+        toast.success(
+          amount > 0
+            ? `$${amount.toFixed(2)} USDT registrados como saque (off-chain)!`
+            : 'Saque registrado com sucesso (off-chain)!',
+          { id: 'claim' },
+        );
+
+        queryClient.invalidateQueries({ queryKey: ['my-positions'] });
+        queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['market', marketId] });
+        return `offchain_claim_${marketId}_${Date.now()}`;
+      }
+
       let expectedWinnings: string | null = null;
       try {
         expectedWinnings = await getExpectedWinnings(marketId);
@@ -70,9 +90,10 @@ export function useClaimWinnings() {
         expectedWinnings = null;
       }
       toast.loading('Confirmando saque... (confirme na carteira)', { id: 'claim' });
+      const predictionContract = contractAddress as `0x${string}`;
 
       const txHash = await writeContractAsync({
-        address: contractAddress,
+        address: predictionContract,
         abi: PREDICTION_MARKET_ABI,
         functionName: 'claimWinnings',
         args: [BigInt(marketId)],

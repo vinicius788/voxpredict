@@ -4,6 +4,8 @@ import { Market } from '../types';
 
 type ApiMarket = {
   id: number;
+  onChainId?: number | null;
+  contractAddress?: string;
   question?: string;
   title?: string;
   description: string;
@@ -79,6 +81,8 @@ export const mapApiMarketToUi = (market: ApiMarket): Market => {
     totalNo,
     yesPool: totalYes,
     noPool: totalNo,
+    contractAddress: market.contractAddress,
+    onChainId: market.onChainId ?? market.id,
     totalBettors: Number(market.totalBettors ?? market.participants ?? 0),
     simOdds: yesOdds,
     naoOdds: noOdds,

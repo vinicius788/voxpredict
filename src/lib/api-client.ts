@@ -50,7 +50,7 @@ export type RegisterPositionInput = {
   side: 'YES' | 'NO';
   amount: string;
   token: string;
-  txHash: string;
+  txHash?: string;
 };
 
 export type CategoryInput = {
@@ -185,10 +185,13 @@ export const api = {
 
   registerPosition: (data: RegisterPositionInput) =>
     request<any>('/api/positions', { method: 'POST', body: JSON.stringify(data) }),
-  markPositionClaimed: (marketId: number, txHash: string) =>
+  markPositionClaimed: (marketId: number, txHash?: string, offChain?: boolean) =>
     request<any>(`/api/positions/${marketId}/claim`, {
       method: 'PUT',
-      body: JSON.stringify({ txHash }),
+      body: JSON.stringify({
+        ...(txHash ? { txHash } : {}),
+        ...(offChain ? { offChain: true } : {}),
+      }),
     }),
 
   createProposal: (data: ProposalInput) =>

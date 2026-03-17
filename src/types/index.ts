@@ -10,6 +10,8 @@ export interface Market {
   totalNo?: number;
   yesPool?: number;
   noPool?: number;
+  contractAddress?: string;
+  onChainId?: number | null;
   totalBettors: number;
   simOdds: number;
   naoOdds: number;

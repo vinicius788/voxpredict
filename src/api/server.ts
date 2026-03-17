@@ -11,6 +11,7 @@ import { apiKeyAuth, authenticate, requireAdmin, type AuthenticatedRequest } fro
 import { startBlockchainIndexer } from './services/blockchain-indexer';
 import { startProbabilitySnapshotJob } from './jobs/probability-snapshot';
 import { startAutoMarketCreatorJob } from './jobs/auto-market-creator';
+import { closeExpiredMarkets, startCloseMarketsJob } from './jobs/close-markets';
 
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
@@ -102,6 +103,7 @@ app.listen(PORT, '0.0.0.0', () => {
   const enableIndexer = process.env.ENABLE_BLOCKCHAIN_INDEXER === 'true';
   const enableSnapshotJob = process.env.ENABLE_PROBABILITY_SNAPSHOT_JOB === 'true';
   const enableAutoMarkets = process.env.ENABLE_AUTO_MARKETS === 'true';
+  const enableCloseMarketsJob = process.env.ENABLE_CLOSE_MARKETS_JOB === 'true';
 
   if (enableIndexer) {
     startBlockchainIndexer().catch((error) => {
@@ -122,5 +124,21 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('Auto market creator job enabled (runs daily at 9:00)');
   } else {
     console.log('Auto market creator job disabled (set ENABLE_AUTO_MARKETS=true to enable)');
+  }
+
+  if (enableCloseMarketsJob) {
+    closeExpiredMarkets()
+      .then((closedCount) => {
+        if (closedCount > 0) {
+          console.log(`Initial close-markets sweep closed ${closedCount} market(s).`);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed initial close-markets sweep:', error);
+      });
+    startCloseMarketsJob();
+    console.log('Close markets job enabled (runs hourly)');
+  } else {
+    console.log('Close markets job disabled (set ENABLE_CLOSE_MARKETS_JOB=true to enable)');
   }
 });

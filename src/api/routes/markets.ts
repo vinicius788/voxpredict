@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+import { ethers } from 'ethers';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middleware/auth';
 import { updateUserRankings } from '../jobs/update-rankings';
+import { PREDICTION_MARKET_ABI } from '../../lib/abis/PredictionMarket.abi';
 
 const router = express.Router();
 const PLATFORM_FEE_RATE = 0.03;
@@ -49,6 +51,8 @@ const parseMarketId = (rawId: string) => {
   return parsed;
 };
 
+const isHexAddress = (value?: string | null) => Boolean(value && /^0x[a-fA-F0-9]{40}$/.test(value));
+
 const calculateMultiplier = (totalYes: number, totalNo: number, side: 'YES' | 'NO') => {
   const sidePool = side === 'YES' ? totalYes : totalNo;
   const otherPool = side === 'YES' ? totalNo : totalYes;
@@ -91,6 +95,7 @@ const mapMarket = (market: {
   return {
     id: market.id,
     contractAddress: market.contractAddress,
+    onChainId: /^0x[a-fA-F0-9]{40}$/.test(market.contractAddress) ? market.id : null,
     question: market.question,
     title: market.question,
     description: market.description,
@@ -351,8 +356,48 @@ router.post('/:id/resolve', authenticate, requireAdmin, async (req: Authenticate
     if (!market) {
       return res.status(404).json({ success: false, error: 'Market not found' });
     }
+
+    if (!['ACTIVE', 'CLOSED'].includes(market.status)) {
+      return res.status(400).json({ success: false, error: 'Market cannot be resolved in current status' });
+    }
+
     if (market.status === 'RESOLVED') {
       return res.status(400).json({ success: false, error: 'Already resolved' });
+    }
+
+    if (market.status === 'ACTIVE' && new Date(market.endTime).getTime() > Date.now()) {
+      return res.status(400).json({ success: false, error: 'Market has not reached endTime yet' });
+    }
+
+    const isOnChainMarket = isHexAddress(market.contractAddress);
+    let resolveTxHash: string | null = null;
+
+    if (isOnChainMarket) {
+      const rpcUrl = process.env.POLYGON_RPC_URL || process.env.MUMBAI_RPC_URL || process.env.ALCHEMY_API_URL;
+      const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+      const contractAddress = (process.env.CONTRACT_ADDRESS || process.env.VITE_CONTRACT_ADDRESS || '').trim();
+      const onChainOutcome = outcome === 'YES' ? 1 : 2;
+
+      if (!rpcUrl || !privateKey || !isHexAddress(contractAddress)) {
+        return res.status(500).json({
+          success: false,
+          error: 'On-chain resolve is not configured (RPC, CONTRACT_ADDRESS, DEPLOYER_PRIVATE_KEY)',
+        });
+      }
+
+      try {
+        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        const signer = new ethers.Wallet(privateKey, provider);
+        const contract = new ethers.Contract(contractAddress, PREDICTION_MARKET_ABI as any, signer);
+        const tx = await contract.resolveMarket(marketId, onChainOutcome);
+        const receipt = await tx.wait();
+        resolveTxHash = receipt?.transactionHash || tx.hash;
+      } catch (chainError: any) {
+        return res.status(500).json({
+          success: false,
+          error: chainError?.shortMessage || chainError?.message || 'Failed to resolve market on-chain',
+        });
+      }
     }
 
     const updated = await prisma.market.update({
@@ -391,7 +436,11 @@ router.post('/:id/resolve', authenticate, requireAdmin, async (req: Authenticate
       console.error('Failed to update rankings after resolve:', rankingError);
     }
 
-    return res.status(200).json({ success: true, data: mapMarket(updated) });
+    return res.status(200).json({
+      success: true,
+      data: mapMarket(updated),
+      ...(resolveTxHash ? { txHash: resolveTxHash } : { offChain: true }),
+    });
   } catch (error) {
     console.error('Error resolving market:', error);
     return res.status(500).json({ success: false, error: 'Failed to resolve market' });

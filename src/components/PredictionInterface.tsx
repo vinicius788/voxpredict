@@ -111,8 +111,11 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
     return (market.totalVolume * market.naoProbability) / 100;
   }, [market.naoProbability, market.totalVolume, market.totalNo, market.noPool]);
 
-  const isClosed = market.status !== 'active' || new Date(market.endDate).getTime() <= Date.now();
+  const hasEndedByTime = new Date(market.endDate).getTime() <= Date.now();
+  const isClosed = market.status !== 'active' || hasEndedByTime;
   const outcome = (market.outcome || '').toUpperCase();
+  const isResolvedByOutcome = ['YES', 'NO', 'CANCELLED'].includes(outcome);
+  const isAwaitingResolution = (market.status === 'closed' || (market.status === 'active' && hasEndedByTime)) && !isResolvedByOutcome;
   const userWon =
     (outcome === 'YES' && position.yesAmountNumber > 0) || (outcome === 'NO' && position.noAmountNumber > 0);
 
@@ -126,6 +129,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const noProbability = totalPool > 0 ? (totalNo / totalPool) * 100 : normalizeProbability(market.noProbability, market.naoProbability);
   const yesProbabilityPercent = clamp(yesProbability, 0, 100);
   const noProbabilityPercent = clamp(noProbability, 0, 100);
+  const isOnChainMarket = Boolean(market.contractAddress && /^0x[a-fA-F0-9]{40}$/.test(market.contractAddress));
 
   const activeOdds = selectedSide === false ? noOdds : yesOdds;
   const activeSideLabel = selectedSide === false ? 'NÃO' : 'SIM';
@@ -136,7 +140,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const hasPositiveAmount = amount > 0;
   const hasMinimumAmount = amount >= minBet;
   const exceedsMaxAmount = amount > maxBet;
-  const hasSufficientBalance = amount <= balanceNumber;
+  const hasSufficientBalance = !isOnChainMarket || amount <= balanceNumber;
   const isWrongNetwork = isWalletConnected && Boolean(chainId && chainId !== expectedChainId);
   const chainName = expectedChainId === 137 ? 'Polygon Mainnet' : 'Polygon Amoy (Testnet)';
 
@@ -230,9 +234,12 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         isYes: selectedSide === true,
         amount: amount.toString(),
         tokenSymbol: effectiveToken,
+        offChain: !isOnChainMarket,
       });
 
-      await refetchTokenBalance();
+      if (isOnChainMarket) {
+        await refetchTokenBalance();
+      }
     } catch {
       // handled by hook
     }
@@ -242,8 +249,10 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
     if (!isValidMarketId) return;
     try {
       setIsClaiming(true);
-      await claim(marketId);
-      await refetchTokenBalance();
+      await claim(marketId, { offChain: !isOnChainMarket });
+      if (isOnChainMarket) {
+        await refetchTokenBalance();
+      }
     } finally {
       setIsClaiming(false);
     }
@@ -260,7 +269,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       };
     }
 
-    if (!isWalletConnected) {
+    if (isOnChainMarket && !isWalletConnected) {
       return {
         text: '🔗 Conectar carteira para apostar',
         action: handleConnectWallet,
@@ -268,7 +277,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       };
     }
 
-    if (isWrongNetwork) {
+    if (isOnChainMarket && isWrongNetwork) {
       return {
         text: `⚠️ Trocar para ${chainName}`,
         action: () => switchChain(expectedChainId),
@@ -331,6 +340,15 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const buttonState = getButtonState();
   const isPrimaryDisabled = isLoading || !buttonState.action;
 
+  if (isAwaitingResolution) {
+    return (
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+        <p className="font-medium text-amber-400">⏰ Mercado encerrado para apostas</p>
+        <p className="mt-1 text-sm text-gray-400">Aguardando resolução pelo administrador</p>
+      </div>
+    );
+  }
+
   if (isClosed && market.status === 'resolved' && position.hasPosition && !position.claimed && userWon) {
     return (
       <div className="vp-card p-6">
@@ -372,7 +390,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
           <CheckCircle2 className="h-6 w-6" />
         </div>
         <p className="text-sm text-[var(--text-secondary)]">
-          Aposta confirmada na blockchain. Você apostou{' '}
+          {isOnChainMarket ? 'Aposta confirmada na blockchain.' : 'Aposta registrada no modo demonstração.'} Você apostou{' '}
           <span className="mono-value text-[var(--text-primary)]">${toCurrency(amount)}</span> em{' '}
           <span className="font-semibold text-[var(--text-primary)]">{selectedSide ? 'SIM' : 'NÃO'}</span>.
         </p>
@@ -385,7 +403,16 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
   return (
     <div className="vp-card p-6">
-      {!isWalletConnected && (
+      {!isOnChainMarket && (
+        <div className="mb-4 rounded-[10px] border border-[rgba(59,130,246,0.35)] bg-[rgba(59,130,246,0.12)] p-3">
+          <p className="text-xs font-semibold text-[#93c5fd]">📋 Mercado de demonstração</p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Apostas registradas off-chain para testes. Não exige transação na carteira.
+          </p>
+        </div>
+      )}
+
+      {isOnChainMarket && !isWalletConnected && (
         <div className="mb-4 rounded-[10px] border border-[rgba(59,130,246,0.45)] bg-[rgba(59,130,246,0.16)] p-4">
           <p className="text-sm font-semibold text-[#93c5fd]">🔌 Carteira desconectada</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -401,7 +428,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         </div>
       )}
 
-      {isWrongNetwork && (
+      {isOnChainMarket && isWrongNetwork && (
         <div className="mb-4 rounded-[10px] border border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.16)] p-4">
           <p className="text-sm font-semibold text-[#fcd34d]">⚠️ Rede incorreta</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -418,7 +445,13 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-[var(--text-secondary)]">
-          Saldo: <span className="mono-value text-[var(--text-primary)]">{balance}</span> {effectiveToken}
+          {isOnChainMarket ? (
+            <>
+              Saldo: <span className="mono-value text-[var(--text-primary)]">{balance}</span> {effectiveToken}
+            </>
+          ) : (
+            <>Modo off-chain ativo</>
+          )}
         </p>
         <select
           value={effectiveToken}

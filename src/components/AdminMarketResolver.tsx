@@ -20,7 +20,6 @@ type ResolutionLog = {
 
 export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
   const { data: pendingMarketsResponse, refetch: refetchPending } = useMarkets({
-    status: 'ACTIVE',
     sortBy: 'ending',
     limit: 200,
     includeAll: true,
@@ -53,7 +52,9 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
 
     return pendingMarkets.filter((market) => {
       const ended = new Date(market.endDate).getTime() <= now;
-      return ended && market.status === 'active';
+      const notResolved = market.status !== 'resolved';
+      const notCancelled = String(market.outcome || '').toUpperCase() !== 'CANCELLED';
+      return ended && notResolved && notCancelled;
     });
   }, [pendingMarkets]);
 
@@ -75,11 +76,13 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
       }));
   }, [resolvedMarkets]);
 
-  const estimateDistribution = (market: Market) => {
-    const winners = Math.max(1, Math.round(market.totalBettors * 0.52));
-    const losers = Math.max(1, market.totalBettors - winners);
-    const distributable = market.totalVolume * 0.97;
-    return { winners, losers, distributable };
+  const getResolutionSummary = (market: Market) => {
+    const yesPool = Number(market.totalYes ?? market.yesPool ?? 0);
+    const noPool = Number(market.totalNo ?? market.noPool ?? 0);
+    const losingPool = selectedResult === 'SIM' ? noPool : yesPool;
+    const fee = losingPool * 0.03;
+    const distributable = market.totalVolume - fee;
+    return { yesPool, noPool, fee, distributable };
   };
 
   const openResolveModal = (market: Market, result: 'SIM' | 'NÃO') => {
@@ -89,7 +92,7 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
 
   const confirmResolve = async () => {
     if (!selectedMarket || !selectedResult) return;
-    const estimate = estimateDistribution(selectedMarket);
+    const summary = getResolutionSummary(selectedMarket);
 
     setResolvingId(selectedMarket.id);
 
@@ -103,7 +106,7 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
       setTimeout(() => setShowConfetti(false), 1600);
 
       await Promise.all([refetchPending(), refetchResolved()]);
-      toast.success(`Mercado resolvido! $${estimate.distributable.toFixed(2)} distribuído.`);
+      toast.success(`Mercado resolvido! $${summary.distributable.toFixed(2)} distribuído.`);
     } catch (error) {
       console.error(error);
       toast.error('Erro ao resolver mercado.');
@@ -138,7 +141,11 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
         ) : (
           <div className="space-y-4">
             {expiredMarkets.map((market) => {
-              const estimate = estimateDistribution(market);
+              const yesPool = Number(market.totalYes ?? market.yesPool ?? 0);
+              const noPool = Number(market.totalNo ?? market.noPool ?? 0);
+              const losingPoolEstimate = Math.min(yesPool, noPool);
+              const feeEstimate = losingPoolEstimate * 0.03;
+              const distributableEstimate = market.totalVolume - feeEstimate;
 
               return (
                 <article key={market.id} className={`border ${themeClasses.border} rounded-xl p-4`}>
@@ -169,18 +176,22 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-[var(--text-secondary)]">
+                  <div className="mt-3 grid grid-cols-1 gap-3 text-xs text-[var(--text-secondary)] sm:grid-cols-4">
                     <div className="rounded-[8px] border border-[var(--border)] p-2">
-                      <p className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" /> Ganhadores estimados</p>
-                      <p className="mono-value text-[var(--text-primary)] mt-1">{estimate.winners}</p>
+                      <p className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" /> Participantes</p>
+                      <p className="mono-value mt-1 text-[var(--text-primary)]">{market.totalBettors}</p>
                     </div>
                     <div className="rounded-[8px] border border-[var(--border)] p-2">
-                      <p className="inline-flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Perdedores estimados</p>
-                      <p className="mono-value text-[var(--text-primary)] mt-1">{estimate.losers}</p>
+                      <p className="inline-flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Pool SIM</p>
+                      <p className="mono-value mt-1 text-[var(--text-primary)]">${yesPool.toFixed(2)}</p>
                     </div>
                     <div className="rounded-[8px] border border-[var(--border)] p-2">
-                      <p className="inline-flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Valor distribuído</p>
-                      <p className="mono-value text-[var(--text-primary)] mt-1">${estimate.distributable.toFixed(2)}</p>
+                      <p className="inline-flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Pool NÃO</p>
+                      <p className="mono-value mt-1 text-[var(--text-primary)]">${noPool.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-[8px] border border-[var(--border)] p-2">
+                      <p className="inline-flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Distribuição estimada</p>
+                      <p className="mono-value mt-1 text-[var(--text-primary)]">${distributableEstimate.toFixed(2)}</p>
                     </div>
                   </div>
                 </article>
@@ -217,12 +228,13 @@ export const AdminMarketResolver: React.FC<AdminMarketResolverProps> = () => {
             <p className={`mt-2 text-sm ${themeClasses.textSecondary}`}>{selectedMarket.title}</p>
 
             {(() => {
-              const estimate = estimateDistribution(selectedMarket);
+              const summary = getResolutionSummary(selectedMarket);
               return (
                 <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4 text-sm text-[var(--text-secondary)]">
                   <p>Resultado escolhido: <span className={selectedResult === 'SIM' ? 'text-[#34d399]' : 'text-[#f87171]'}>{selectedResult}</span></p>
-                  <p className="mt-1">Impacto estimado: {estimate.winners} ganham, {estimate.losers} perdem.</p>
-                  <p className="mono-value mt-1">Valor distribuído estimado: ${estimate.distributable.toFixed(2)}</p>
+                  <p className="mt-1">Pool SIM: ${summary.yesPool.toFixed(2)} | Pool NÃO: ${summary.noPool.toFixed(2)}</p>
+                  <p className="mt-1">Taxa estimada (3% do lado perdedor): ${summary.fee.toFixed(2)}</p>
+                  <p className="mono-value mt-1">Valor distribuído estimado: ${summary.distributable.toFixed(2)}</p>
                 </div>
               );
             })()}

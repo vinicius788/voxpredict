@@ -60,6 +60,7 @@ export type ApiPosition = {
     category: string | { name: string; emoji?: string };
     endTime: string;
     closeTime?: string;
+    contractAddress?: string;
     status: string;
     outcome?: string | null;
     yesPool?: number;

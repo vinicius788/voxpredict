@@ -44,6 +44,29 @@ const calculateCurrentOdds = (totalYes: number, totalNo: number, side: 'YES' | '
   return (total * 0.97) / sidePool;
 };
 
+const isHexAddress = (value?: string | null) => Boolean(value && /^0x[a-fA-F0-9]{40}$/.test(value));
+
+const calculateResolvedPayout = (
+  stake: number,
+  side: 'YES' | 'NO',
+  outcome: string | null,
+  yesPool: number,
+  noPool: number,
+) => {
+  if (outcome === 'CANCELLED') return stake;
+  if (outcome !== 'YES' && outcome !== 'NO') return 0;
+
+  const isWinner = (side === 'YES' && outcome === 'YES') || (side === 'NO' && outcome === 'NO');
+  if (!isWinner) return 0;
+
+  const winningPool = side === 'YES' ? yesPool : noPool;
+  const losingPool = side === 'YES' ? noPool : yesPool;
+  if (winningPool <= 0) return stake;
+
+  const distributableLosingPool = losingPool * 0.97;
+  return stake + distributableLosingPool * (stake / winningPool);
+};
+
 const resolveUserWalletAddress = async (req: AuthenticatedRequest): Promise<string | null> => {
   const walletFromToken = req.user?.walletAddress?.toLowerCase();
   if (walletFromToken && ethers.utils.isAddress(walletFromToken)) {
@@ -81,11 +104,12 @@ const createPositionSchema = z.object({
     z.number().positive(),
   ]),
   token: z.string().min(2).max(10).default('USDT'),
-  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
 });
 
 const claimSchema = z.object({
-  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
+  offChain: z.boolean().optional(),
 });
 
 router.get('/my', authenticate, async (req: AuthenticatedRequest, res: Response) => {
@@ -108,6 +132,7 @@ router.get('/my', authenticate, async (req: AuthenticatedRequest, res: Response)
             outcome: true,
             totalYes: true,
             totalNo: true,
+            contractAddress: true,
           },
         },
       },
@@ -143,6 +168,7 @@ router.get('/my', authenticate, async (req: AuthenticatedRequest, res: Response)
             noPool: totalNo,
             totalYes,
             totalNo,
+            contractAddress: position.market.contractAddress,
             category: {
               name: position.market.category,
               emoji: getCategoryEmoji(position.market.category),
@@ -226,21 +252,14 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
     const tokenSymbol = payload.token.toUpperCase();
     const tokenDecimals = getTokenDecimals(tokenSymbol);
 
-    const txAlreadyRegistered = await prisma.position.findUnique({
-      where: { txHash: payload.txHash },
-      select: { id: true },
-    });
-
-    if (txAlreadyRegistered) {
-      return res.status(409).json({ success: false, error: 'Transaction already registered' });
-    }
-
     const market = await prisma.market.findUnique({
       where: { id: payload.marketId },
       select: {
         id: true,
         status: true,
+        endTime: true,
         token: true,
+        contractAddress: true,
       },
     });
 
@@ -249,35 +268,63 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
     }
 
     if (market.status !== 'ACTIVE') {
-      return res.status(400).json({ success: false, error: 'Market is not active' });
+      return res.status(400).json({ success: false, error: 'Mercado encerrado para novas apostas' });
+    }
+
+    if (new Date(market.endTime).getTime() <= Date.now()) {
+      return res.status(400).json({ success: false, error: 'Mercado encerrado para novas apostas' });
     }
 
     if (market.token.toUpperCase() !== tokenSymbol) {
       return res.status(400).json({ success: false, error: 'Token da aposta nao confere com o mercado' });
     }
 
-    const walletAddress = await resolveUserWalletAddress(req);
-    if (!walletAddress) {
-      return res.status(400).json({ success: false, error: 'Carteira nao vinculada a conta' });
+    const isOffChainMarket = !isHexAddress(market.contractAddress);
+    const providedTxHash = payload.txHash;
+
+    if (providedTxHash) {
+      const txAlreadyRegistered = await prisma.position.findUnique({
+        where: { txHash: providedTxHash },
+        select: { id: true },
+      });
+
+      if (txAlreadyRegistered) {
+        return res.status(409).json({ success: false, error: 'Transaction already registered' });
+      }
     }
 
-    let expectedAmountOnChain;
-    try {
-      expectedAmountOnChain = ethers.utils.parseUnits(amountAsString, tokenDecimals);
-    } catch {
-      return res.status(400).json({ success: false, error: 'Valor invalido para o token selecionado' });
-    }
+    let effectiveTxHash = providedTxHash;
 
-    const validation = await validateBetTx(
-      payload.txHash,
-      walletAddress,
-      payload.marketId,
-      expectedAmountOnChain,
-      payload.side === 'YES',
-    );
+    if (isOffChainMarket) {
+      effectiveTxHash = `offchain_bet_${payload.marketId}_${userId}_${Date.now()}`;
+    } else {
+      if (!providedTxHash) {
+        return res.status(400).json({ success: false, error: 'txHash é obrigatório para mercados on-chain' });
+      }
 
-    if (!validation.valid) {
-      return res.status(400).json({ success: false, error: `Transacao invalida: ${validation.error}` });
+      const walletAddress = await resolveUserWalletAddress(req);
+      if (!walletAddress) {
+        return res.status(400).json({ success: false, error: 'Carteira nao vinculada a conta' });
+      }
+
+      let expectedAmountOnChain;
+      try {
+        expectedAmountOnChain = ethers.utils.parseUnits(amountAsString, tokenDecimals);
+      } catch {
+        return res.status(400).json({ success: false, error: 'Valor invalido para o token selecionado' });
+      }
+
+      const validation = await validateBetTx(
+        providedTxHash,
+        walletAddress,
+        payload.marketId,
+        expectedAmountOnChain,
+        payload.side === 'YES',
+      );
+
+      if (!validation.valid) {
+        return res.status(400).json({ success: false, error: `Transacao invalida: ${validation.error}` });
+      }
     }
 
     const userAlreadyInMarket = await prisma.position.findFirst({
@@ -296,7 +343,7 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
           side: payload.side,
           amount,
           token: tokenSymbol,
-          txHash: payload.txHash,
+          txHash: effectiveTxHash as string,
         },
       }),
       prisma.market.update({
@@ -313,7 +360,7 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
           type: 'BET',
           amount,
           token: tokenSymbol,
-          txHash: payload.txHash,
+          txHash: effectiveTxHash as string,
         },
       }),
     ]);
@@ -342,6 +389,7 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
 
     return res.status(201).json({
       success: true,
+      offChain: isOffChainMarket,
       data: {
         ...position,
         amount: toNumber(position.amount),
@@ -374,14 +422,25 @@ router.put('/:marketId/claim', authenticate, async (req: AuthenticatedRequest, r
       });
     }
 
-    const walletAddress = await resolveUserWalletAddress(req);
-    if (!walletAddress) {
-      return res.status(400).json({ success: false, error: 'Carteira nao vinculada a conta' });
-    }
-
     const position = await prisma.position.findFirst({
       where: { userId, marketId },
-      select: { id: true, claimed: true, token: true },
+      select: {
+        id: true,
+        claimed: true,
+        token: true,
+        side: true,
+        amount: true,
+        market: {
+          select: {
+            status: true,
+            outcome: true,
+            endTime: true,
+            totalYes: true,
+            totalNo: true,
+            contractAddress: true,
+          },
+        },
+      },
     });
 
     if (!position) {
@@ -392,15 +451,52 @@ router.put('/:marketId/claim', authenticate, async (req: AuthenticatedRequest, r
       return res.status(409).json({ success: false, error: 'Position already claimed' });
     }
 
-    const validation = await validateClaimTx(parsed.data.txHash, walletAddress, marketId);
-    if (!validation.valid) {
-      return res.status(400).json({ success: false, error: `Claim invalido: ${validation.error}` });
-    }
-
     const tokenSymbol = position.token.toUpperCase();
-    const claimAmount = validation.amount
-      ? new Prisma.Decimal(ethers.utils.formatUnits(validation.amount, getTokenDecimals(tokenSymbol)))
-      : new Prisma.Decimal(0);
+    const isOffChainMarket = !isHexAddress(position.market.contractAddress);
+    const shouldUseOffChainClaim = isOffChainMarket;
+
+    let claimAmount: Prisma.Decimal = new Prisma.Decimal(0);
+    let txHashToStore = parsed.data.txHash || '';
+
+    if (shouldUseOffChainClaim) {
+      const marketStatus = String(position.market.status || '').toUpperCase();
+      const outcome = position.market.outcome ? String(position.market.outcome).toUpperCase() : null;
+
+      if (!['RESOLVED', 'CANCELLED'].includes(marketStatus)) {
+        return res.status(400).json({ success: false, error: 'Mercado ainda não foi resolvido' });
+      }
+
+      const amount = toNumber(position.amount);
+      const yesPool = toNumber(position.market.totalYes);
+      const noPool = toNumber(position.market.totalNo);
+      const payout = calculateResolvedPayout(amount, position.side as 'YES' | 'NO', outcome, yesPool, noPool);
+
+      if (payout <= 0) {
+        return res.status(400).json({ success: false, error: 'Sem ganhos disponíveis para saque' });
+      }
+
+      claimAmount = new Prisma.Decimal(payout.toFixed(6));
+      txHashToStore = `offchain_claim_${marketId}_${userId}_${Date.now()}`;
+    } else {
+      const walletAddress = await resolveUserWalletAddress(req);
+      if (!walletAddress) {
+        return res.status(400).json({ success: false, error: 'Carteira nao vinculada a conta' });
+      }
+
+      if (!parsed.data.txHash) {
+        return res.status(400).json({ success: false, error: 'txHash é obrigatório para saque on-chain' });
+      }
+
+      const validation = await validateClaimTx(parsed.data.txHash, walletAddress, marketId);
+      if (!validation.valid) {
+        return res.status(400).json({ success: false, error: `Claim invalido: ${validation.error}` });
+      }
+
+      claimAmount = validation.amount
+        ? new Prisma.Decimal(ethers.utils.formatUnits(validation.amount, getTokenDecimals(tokenSymbol)))
+        : new Prisma.Decimal(0);
+      txHashToStore = parsed.data.txHash;
+    }
 
     const updated = await prisma.position.updateMany({
       where: {
@@ -415,24 +511,30 @@ router.put('/:marketId/claim', authenticate, async (req: AuthenticatedRequest, r
       return res.status(409).json({ success: false, error: 'Position already claimed' });
     }
 
-    const existingTx = await prisma.transaction.findUnique({
-      where: { txHash: parsed.data.txHash },
-      select: { id: true },
-    });
-
-    if (!existingTx) {
-      await prisma.transaction.create({
-        data: {
-          userId,
-          type: 'CLAIM',
-          amount: claimAmount,
-          token: tokenSymbol,
-          txHash: parsed.data.txHash,
-        },
+    if (txHashToStore) {
+      const existingTx = await prisma.transaction.findUnique({
+        where: { txHash: txHashToStore },
+        select: { id: true },
       });
+
+      if (!existingTx) {
+        await prisma.transaction.create({
+          data: {
+            userId,
+            type: 'CLAIM',
+            amount: claimAmount,
+            token: tokenSymbol,
+            txHash: txHashToStore,
+          },
+        });
+      }
     }
 
-    return res.status(200).json({ success: true, amount: claimAmount.toString() });
+    return res.status(200).json({
+      success: true,
+      offChain: shouldUseOffChainClaim,
+      amount: claimAmount.toString(),
+    });
   } catch (error) {
     console.error('Error claiming position:', error);
     return res.status(500).json({ success: false, error: 'Failed to claim position' });

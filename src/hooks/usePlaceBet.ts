@@ -22,6 +22,7 @@ interface PlaceBetInput {
   isYes: boolean;
   amount: string;
   tokenSymbol?: SupportedToken;
+  offChain?: boolean;
 }
 
 const getRpcUrlByChain = (chainId: number) => {
@@ -58,13 +59,13 @@ export function usePlaceBet() {
   const { writeContractAsync: writeApprove } = useWriteContract();
   const { writeContractAsync: writeBet } = useWriteContract();
 
-  const placeBet = async ({ marketId, isYes, amount, tokenSymbol = 'USDT' }: PlaceBetInput) => {
-    if (!address) {
+  const placeBet = async ({ marketId, isYes, amount, tokenSymbol = 'USDT', offChain = false }: PlaceBetInput) => {
+    if (!offChain && !address) {
       toast.error('Conecte sua carteira primeiro');
       return null;
     }
 
-    if (!contractAddress) {
+    if (!offChain && !contractAddress) {
       const error = 'Contrato não configurado. Defina VITE_CONTRACT_ADDRESS.';
       toast.error(error);
       throw new Error(error);
@@ -77,17 +78,44 @@ export function usePlaceBet() {
       throw new Error(error);
     }
 
-    const tokenAddress = TOKEN_ADDRESSES[activeChainId]?.[tokenSymbol];
-    if (!tokenAddress) {
-      const error = `Token ${tokenSymbol} não suportado na rede atual.`;
-      toast.error(error);
-      throw new Error(error);
-    }
-
-    const decimals = TOKEN_DECIMALS[tokenSymbol] ?? 6;
-    const parsedAmount = parseUnits(amount, decimals);
-
     try {
+      if (offChain) {
+        setStep('betting');
+        setErrorMessage('');
+        toast.loading('Registrando aposta de demonstração...', { id: 'bet-flow' });
+
+        await api.registerPosition({
+          marketId,
+          side: isYes ? 'YES' : 'NO',
+          amount,
+          token: tokenSymbol,
+        });
+
+        setStep('success');
+        toast.success(`Aposta de $${amount} em ${isYes ? 'SIM' : 'NÃO'} registrada (modo demonstração).`, {
+          id: 'bet-flow',
+        });
+
+        queryClient.invalidateQueries({ queryKey: ['market', marketId] });
+        queryClient.invalidateQueries({ queryKey: ['market-history', marketId] });
+        queryClient.invalidateQueries({ queryKey: ['markets'] });
+        queryClient.invalidateQueries({ queryKey: ['my-positions'] });
+        queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+
+        return `offchain_${marketId}_${Date.now()}`;
+      }
+
+      const tokenAddress = TOKEN_ADDRESSES[activeChainId]?.[tokenSymbol];
+      if (!tokenAddress) {
+        const error = `Token ${tokenSymbol} não suportado na rede atual.`;
+        toast.error(error);
+        throw new Error(error);
+      }
+      const predictionContract = contractAddress as `0x${string}`;
+
+      const decimals = TOKEN_DECIMALS[tokenSymbol] ?? 6;
+      const parsedAmount = parseUnits(amount, decimals);
+
       setStep('approving');
       setErrorMessage('');
       toast.loading('Aprovando token... (confirme na carteira)', { id: 'bet-flow' });
@@ -96,7 +124,7 @@ export function usePlaceBet() {
         address: tokenAddress,
         abi: ERC20_ABI,
         functionName: 'approve',
-        args: [contractAddress, parsedAmount],
+        args: [predictionContract, parsedAmount],
       });
 
       setStep('waiting_approval');
@@ -107,7 +135,7 @@ export function usePlaceBet() {
       toast.loading('Enviando aposta... (confirme na carteira)', { id: 'bet-flow' });
 
       const betTx = await writeBet({
-        address: contractAddress,
+        address: predictionContract,
         abi: PREDICTION_MARKET_ABI,
         functionName: 'placeBet',
         args: [BigInt(marketId), isYes, parsedAmount],

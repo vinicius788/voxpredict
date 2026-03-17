@@ -38,6 +38,7 @@ type PositionFilter = 'soon' | 'return' | 'category';
 type PositionRow = {
   id: string;
   marketId: string;
+  contractAddress?: string;
   title: string;
   categoryName: string;
   categoryEmoji: string;
@@ -205,6 +206,7 @@ export const UserDashboard: React.FC = () => {
       return {
         id: position.id,
         marketId: String(position.marketId),
+        contractAddress: position.market.contractAddress,
         title: position.market.title || position.market.question,
         categoryName: normalizedCategory.name,
         categoryEmoji: normalizedCategory.emoji,
@@ -285,18 +287,20 @@ export const UserDashboard: React.FC = () => {
     const marketId = Number(position.marketId);
     if (!Number.isInteger(marketId) || marketId <= 0) return;
 
+    const isOnChainMarket = Boolean(position.contractAddress && /^0x[a-fA-F0-9]{40}$/.test(position.contractAddress));
+
     try {
-      if (!isWalletConnected) {
+      if (isOnChainMarket && !isWalletConnected) {
         await connectWallet();
         return;
       }
 
-      if (chainId && chainId !== expectedChainId) {
+      if (isOnChainMarket && chainId && chainId !== expectedChainId) {
         await switchChain(expectedChainId);
       }
 
       setClaimingPositionKey(position.id);
-      await claim(marketId);
+      await claim(marketId, { offChain: !isOnChainMarket });
     } finally {
       setClaimingPositionKey(null);
     }
