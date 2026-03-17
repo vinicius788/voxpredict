@@ -128,7 +128,7 @@ export const TermsOfService: React.FC = () => {
                   <Shield className="w-5 h-5 text-amber-600 mt-0.5" />
                   <div>
                     <div className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
-                      ⚠️ Aviso Importante sobre Riscos
+                       Aviso Importante sobre Riscos
                     </div>
                     <div className="text-xs text-amber-700 dark:text-amber-400">
                       <p>• Mercados preditivos envolvem risco de perda total do capital investido</p>

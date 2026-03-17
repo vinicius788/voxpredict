@@ -112,7 +112,7 @@ router.post('/', authenticate, requireAdmin, async (req: Request, res: Response)
         key,
         label: payload.label.trim(),
         description: payload.description?.trim() || null,
-        icon: payload.icon || '🎯',
+        icon: payload.icon || 'MKT',
         color: payload.color || '#7C3AED',
         active: payload.active ?? true,
         sortOrder: payload.sortOrder ?? (last?.sortOrder || 0) + 1,

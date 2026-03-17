@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Calendar, Flame, Heart, Share2, Users } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { Market } from '../types';
 
 interface MarketCardProps {
@@ -70,6 +71,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   onToggleFavorite,
   onShare,
 }) => {
+  const navigate = useNavigate();
+  const [showPreview, setShowPreview] = useState(false);
   const category = market.category.toLowerCase();
   const categoryStyle = categoryStyles[category] ?? {
     badge: 'bg-[rgba(124,58,237,0.16)] text-[#c4b5fd] border-[rgba(124,58,237,0.35)]',
@@ -82,6 +85,15 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const sparklineData = useMemo(() => getSparklineData(market), [market]);
   const trendDelta = sparklineData[sparklineData.length - 1].simProbability - sparklineData[0].simProbability;
   const sparkColor = trendDelta > 1 ? '#10B981' : trendDelta < -1 ? '#EF4444' : '#94A3B8';
+  const handleTogglePreview = () => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= 1024) return;
+    setShowPreview((prev) => !prev);
+  };
+
+  const goToMarketWithSide = (side: 'yes' | 'no') => {
+    navigate(`/market/${market.id}?side=${side}`);
+  };
 
   return (
     <article className="market-card vp-card vp-card-hover overflow-hidden">
@@ -112,7 +124,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         </div>
       </div>
 
-      <div className="space-y-4 px-4 py-4">
+      <div className="space-y-4 px-4 py-4 lg:cursor-default cursor-pointer" onClick={handleTogglePreview}>
         <h3 className="line-clamp-2 text-[17px] font-semibold text-[var(--text-primary)]">{market.title}</h3>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[var(--border)] pb-3 text-xs text-[var(--text-secondary)]">
@@ -185,6 +197,26 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        {showPreview && (
+          <div
+            className="grid grid-cols-2 gap-2 border-t border-[var(--border)] pt-3"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              onClick={() => goToMarketWithSide('yes')}
+              className="rounded-lg border border-green-500/30 bg-green-500/20 py-2 text-sm font-medium text-green-400"
+            >
+              SIM {market.simOdds.toFixed(2)}x
+            </button>
+            <button
+              onClick={() => goToMarketWithSide('no')}
+              className="rounded-lg border border-red-500/30 bg-red-500/20 py-2 text-sm font-medium text-red-400"
+            >
+              NÃO {market.naoOdds.toFixed(2)}x
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-3 text-sm">

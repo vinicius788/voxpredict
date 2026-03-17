@@ -15,11 +15,11 @@ export const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({
   const { chainId, switchChain } = useWeb3();
 
   const chains = [
-    { id: 137, name: 'Polygon', icon: '🟣' },
-    { id: 80002, name: 'Amoy Testnet', icon: '🔮' },
-    { id: 8453, name: 'Base', icon: '🔵' },
-    { id: 1, name: 'Ethereum', icon: '🔷' },
-    { id: 11155111, name: 'Sepolia Testnet', icon: '🧪' }
+    { id: 137, name: 'Polygon', icon: '' },
+    { id: 80002, name: 'Amoy Testnet', icon: '' },
+    { id: 8453, name: 'Base', icon: '' },
+    { id: 1, name: 'Ethereum', icon: '' },
+    { id: 11155111, name: 'Sepolia Testnet', icon: '' }
   ];
 
   const themeClasses = {
@@ -49,7 +49,7 @@ export const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({
           className={`flex items-center space-x-1 p-2 rounded-lg transition-colors ${themeClasses.button}`}
           aria-label="Select network"
         >
-          <span>{selectedChain?.icon || '🌐'}</span>
+          <span>{selectedChain?.icon || ''}</span>
           <ChevronDown className="w-3 h-3" />
         </button>
         
@@ -88,7 +88,7 @@ export const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${themeClasses.button}`}
       >
-        <span>{selectedChain?.icon || '🌐'}</span>
+        <span>{selectedChain?.icon || ''}</span>
         <span>{selectedChain?.name || 'Select Network'}</span>
         <ChevronDown className="w-4 h-4 ml-1" />
       </button>

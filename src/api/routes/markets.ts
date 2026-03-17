@@ -421,7 +421,7 @@ router.post('/:id/resolve', authenticate, requireAdmin, async (req: Authenticate
           return {
             userId: position.userId,
             type: won ? 'WIN' : 'LOSS',
-            title: won ? '🎉 Você acertou!' : '😔 Você errou',
+            title: won ? 'Você acertou!' : 'Você errou',
             message: won
               ? `O mercado "${market.question}" foi resolvido como ${outcome}. Seus ganhos estão disponíveis.`
               : `O mercado "${market.question}" foi resolvido como ${outcome}.`,

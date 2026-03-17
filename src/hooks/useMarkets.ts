@@ -82,7 +82,7 @@ export const mapApiMarketToUi = (market: ApiMarket): Market => {
     yesPool: totalYes,
     noPool: totalNo,
     contractAddress: market.contractAddress,
-    onChainId: market.onChainId ?? market.id,
+    onChainId: market.onChainId ?? null,
     totalBettors: Number(market.totalBettors ?? market.participants ?? 0),
     simOdds: yesOdds,
     naoOdds: noOdds,

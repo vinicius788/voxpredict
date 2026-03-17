@@ -17,7 +17,7 @@ export const Header: React.FC = () => {
   const navItems = [
     { path: '/', label: 'Início' },
     { path: '/dashboard', label: 'Mercados' },
-    { path: '/leaderboard', label: '🏆 Ranking' },
+    { path: '/leaderboard', label: 'Ranking' },
     { path: '/user-dashboard', label: 'Meu Dashboard', requiresAuth: true },
     { path: '/admin', label: 'Admin', requiresAuth: true, adminOnly: true },
   ];
@@ -111,59 +111,64 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      <div
-        className={`fixed inset-0 z-40 bg-[rgba(0,0,0,0.45)] backdrop-blur-sm transition-opacity lg:hidden ${
-          isMobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <aside
-          className={`absolute right-0 top-0 h-full w-[82%] max-w-[340px] border-l border-[var(--border)] bg-[var(--brand-800)] p-5 transition-transform ${
-            isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mb-5 flex items-center justify-between">
-            <span className="text-sm font-semibold text-[var(--text-secondary)]">Navegação</span>
-            <button
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="rounded-[8px] border border-[var(--border)] p-1.5 text-[var(--text-secondary)]"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <nav className="space-y-2">
-            {visibleItems.map((item) => {
-              const active = location.pathname === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    navigate(item.path);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full rounded-[8px] px-3 py-3 text-left text-sm font-semibold transition-colors ${
-                    active
-                      ? 'bg-[rgba(124,58,237,0.24)] text-[var(--text-primary)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4">
-            <AuthButton />
-            <div className="flex items-center justify-between gap-2">
-              {isSignedIn && <NotificationCenter />}
-              {canShowWalletButton && <ConnectWalletButton />}
+      {isMobileMenuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <aside
+            className="fixed bottom-0 right-0 top-0 z-50 flex w-72 max-w-[86vw] animate-slide-in-right flex-col border-l border-white/10 bg-[#0f0f1a] lg:hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 p-4">
+              <span className="text-sm font-semibold text-[var(--text-primary)]">Menu</span>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="rounded-[8px] p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                aria-label="Fechar menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </div>
-        </aside>
-      </div>
+
+            <nav className="flex-1 space-y-1 p-4">
+              {visibleItems.map((item) => {
+                const active = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => {
+                      navigate(item.path);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`block w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors ${
+                      active
+                        ? 'bg-[rgba(124,58,237,0.24)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="space-y-3 border-t border-white/10 p-4">
+              {isSignedIn && (
+                <p className="truncate px-1 text-xs text-[var(--text-muted)]">
+                  {canShowWalletButton ? 'Conta autenticada' : 'Área administrativa'}
+                </p>
+              )}
+              <AuthButton />
+              <div className="flex items-center justify-between gap-2">
+                {isSignedIn && <NotificationCenter />}
+                {canShowWalletButton && <ConnectWalletButton />}
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
     </header>
   );
 };

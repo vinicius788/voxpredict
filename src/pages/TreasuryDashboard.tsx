@@ -104,7 +104,7 @@ export const TreasuryDashboard: React.FC = () => {
             </div>
             <div>
               <h1 className={`text-3xl font-bold ${themeClasses.text}`}>
-                💰 VoxPredict Treasury
+                 VoxPredict Treasury
               </h1>
               <p className={`${themeClasses.textSecondary}`}>
                 Complete management of platform funds - {adminEmail}
@@ -117,7 +117,7 @@ export const TreasuryDashboard: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Shield className="w-4 h-4 text-green-600" />
               <span className="text-sm font-medium text-green-800 dark:text-green-300">
-                🔐 Authorized Access - Official Treasury
+                 Authorized Access - Official Treasury
               </span>
             </div>
             <p className="text-xs text-green-700 dark:text-green-400 mt-1">
@@ -146,7 +146,7 @@ export const TreasuryDashboard: React.FC = () => {
                 </div>
                 
                 <h2 className={`text-2xl font-bold ${themeClasses.text} mb-2`}>
-                  📊 Accumulated Balance (Smart Contract)
+                   Accumulated Balance (Smart Contract)
                 </h2>
                 
                 <div className={`text-5xl font-bold ${treasuryData.platformBalance > 0 ? 'text-purple-600' : themeClasses.textSecondary} mb-4`}>
@@ -207,7 +207,7 @@ export const TreasuryDashboard: React.FC = () => {
                   ) : (
                     <>
                       <Download className="w-5 h-5" />
-                      <span>💰 Withdraw {formatCurrency(treasuryData.platformBalance)} to Safe</span>
+                      <span> Withdraw {formatCurrency(treasuryData.platformBalance)} to Safe</span>
                     </>
                   )}
                 </button>
@@ -229,7 +229,7 @@ export const TreasuryDashboard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className={`text-lg font-semibold ${themeClasses.text}`}>
-                      💼 Platform Treasury
+                       Platform Treasury
                     </h3>
                     <p className={`text-sm ${themeClasses.textSecondary}`}>
                       Safe Ethereum - Real-time balance
@@ -251,7 +251,7 @@ export const TreasuryDashboard: React.FC = () => {
               <div className={`${isBrandTheme ? 'bg-gradient-to-r from-green-900/20 to-blue-900/20 border-green-700' : 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200'} rounded-xl p-6 border mb-6`}>
                 <div className="text-center">
                   <div className={`text-sm ${isBrandTheme ? 'text-green-300' : 'text-green-700'} font-medium mb-2`}>
-                    💰 Total Treasury Value
+                     Total Treasury Value
                   </div>
                   <div className={`text-4xl font-bold ${isBrandTheme ? 'text-green-300' : 'text-green-800'}`}>
                     {formatCurrency(12969.75)}
@@ -266,7 +266,7 @@ export const TreasuryDashboard: React.FC = () => {
               <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-lg font-semibold ${themeClasses.text}`}>
-                    📊 Financial Summary
+                     Financial Summary
                   </h3>
                   <button
                     onClick={refreshTreasuryData}
@@ -304,7 +304,7 @@ export const TreasuryDashboard: React.FC = () => {
 
                   <div className={`flex items-center justify-between p-4 ${isBrandTheme ? 'bg-blue-900/20' : 'bg-blue-50'} rounded-xl border-2 border-blue-200 dark:border-blue-700`}>
                     <div>
-                      <div className="text-sm text-blue-600 font-medium">💰 Grand Total</div>
+                      <div className="text-sm text-blue-600 font-medium"> Grand Total</div>
                       <div className="text-xs text-blue-700 dark:text-blue-400">Smart Contract + Safe</div>
                     </div>
                     <div className="text-right">
@@ -342,13 +342,13 @@ export const TreasuryDashboard: React.FC = () => {
         <div className="mt-8">
           <div className={`${themeClasses.cardBg} rounded-2xl shadow-sm border ${themeClasses.border} p-6`}>
             <h3 className={`text-lg font-semibold ${themeClasses.text} mb-6`}>
-              🔄 Platform Funds Flow
+               Platform Funds Flow
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">1️⃣</span>
+                  <span className="text-xl">1⃣</span>
                 </div>
                 <div className={`text-sm font-medium ${themeClasses.text} mb-1`}>Active Markets</div>
                 <div className={`text-xs ${themeClasses.textSecondary}`}>
@@ -358,7 +358,7 @@ export const TreasuryDashboard: React.FC = () => {
 
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">2️⃣</span>
+                  <span className="text-xl">2⃣</span>
                 </div>
                 <div className={`text-sm font-medium ${themeClasses.text} mb-1`}>Automatic Fee</div>
                 <div className={`text-xs ${themeClasses.textSecondary}`}>
@@ -368,7 +368,7 @@ export const TreasuryDashboard: React.FC = () => {
 
               <div className="text-center">
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">3️⃣</span>
+                  <span className="text-xl">3⃣</span>
                 </div>
                 <div className={`text-sm font-medium ${themeClasses.text} mb-1`}>Manual Withdrawal</div>
                 <div className={`text-xs ${themeClasses.textSecondary}`}>
@@ -378,7 +378,7 @@ export const TreasuryDashboard: React.FC = () => {
 
               <div className="text-center">
                 <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">4️⃣</span>
+                  <span className="text-xl">4⃣</span>
                 </div>
                 <div className={`text-sm font-medium ${themeClasses.text} mb-1`}>Secure Safe</div>
                 <div className={`text-xs ${themeClasses.textSecondary}`}>
@@ -395,14 +395,14 @@ export const TreasuryDashboard: React.FC = () => {
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-green-800 dark:text-green-300">
-                🚀 Operational System
+                 Operational System
               </span>
             </div>
             <div className="text-xs text-green-700 dark:text-green-400 grid grid-cols-2 md:grid-cols-4 gap-2">
-              <div>✅ Smart contracts working</div>
-              <div>✅ Fees being collected</div>
-              <div>✅ Safe configured and verified</div>
-              <div>✅ Balances updated in real time</div>
+              <div> Smart contracts working</div>
+              <div> Fees being collected</div>
+              <div> Safe configured and verified</div>
+              <div> Balances updated in real time</div>
             </div>
           </div>
         </div>

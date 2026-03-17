@@ -191,7 +191,7 @@ export const AdminAIMarketGenerator: React.FC<AdminAIMarketGeneratorProps> = () 
                 : 'border-[rgba(239,68,68,0.45)] bg-[rgba(239,68,68,0.2)] text-[#fca5a5]'
             }`}
           >
-            {aiActive ? '🟢 IA ativa' : '🔴 IA inativa'}
+            {aiActive ? 'IA ativa' : 'IA inativa'}
           </button>
         </div>
 

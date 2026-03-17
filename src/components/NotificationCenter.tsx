@@ -70,7 +70,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <div className={`p-4 border-b ${themeClasses.border}`}>
               <div className="flex items-center justify-between">
                 <h3 className={`text-lg font-semibold ${themeClasses.text}`}>
-                  🔔 Notificações
+                  Notificações
                 </h3>
                 <div className="flex items-center space-x-2">
                   {unreadCount > 0 && (

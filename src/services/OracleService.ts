@@ -207,7 +207,7 @@ export class OracleService {
    * Resolve a market automatically using multiple sources
    */
   async resolveMarket(market: MarketForOracle): Promise<OracleResult> {
-    console.log(`🔮 Resolving market: ${market.question}`);
+    console.log(` Resolving market: ${market.question}`);
 
     try {
       // Tentar resolver via API real

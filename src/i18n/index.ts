@@ -120,7 +120,7 @@ export const translations = {
     'footer.terms': 'Termos de Uso',
     'footer.privacy': 'Privacidade',
     'footer.contact': 'Contato',
-    'footer.copyright': '© 2025 VoxPredict. Todos os direitos reservados.',
+    'footer.copyright': ' 2025 VoxPredict. Todos os direitos reservados.',
   },
   
   'en-US': {
@@ -211,7 +211,7 @@ export const translations = {
     'footer.terms': 'Terms of Use',
     'footer.privacy': 'Privacy',
     'footer.contact': 'Contact',
-    'footer.copyright': '© 2025 VoxPredict. All rights reserved.',
+    'footer.copyright': ' 2025 VoxPredict. All rights reserved.',
   },
   
   'es-ES': {
@@ -302,7 +302,7 @@ export const translations = {
     'footer.terms': 'Términos de Uso',
     'footer.privacy': 'Privacidad',
     'footer.contact': 'Contacto',
-    'footer.copyright': '© 2025 VoxPredict. Todos los derechos reservados.',
+    'footer.copyright': ' 2025 VoxPredict. Todos los derechos reservados.',
   }
 };
 

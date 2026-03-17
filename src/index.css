@@ -360,6 +360,19 @@ select:focus-visible {
   }
 }
 
+.animate-slide-in-right {
+  animation: slideInRight 0.2s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 1024px) {
   .section-shell {
     width: min(1280px, 100% - 1.5rem);

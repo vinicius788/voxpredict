@@ -119,13 +119,13 @@ const normalizeCategory = (category: string | { name: string; emoji?: string }) 
   if (typeof category === 'string') {
     return {
       name: category,
-      emoji: '🎯',
+      emoji: '',
     };
   }
 
   return {
     name: category.name,
-    emoji: category.emoji || '🎯',
+    emoji: '',
   };
 };
 
@@ -266,7 +266,7 @@ export const UserDashboard: React.FC = () => {
       return diff > 0 && diff <= 48 * 60 * 60 * 1000;
     }).length;
 
-    if (openSoonCount > 0) return `⚠️ ${openSoonCount} posição${openSoonCount > 1 ? 'ões' : ''} encerram em breve`;
+    if (openSoonCount > 0) return `${openSoonCount} posição${openSoonCount > 1 ? 'ões' : ''} encerram em breve`;
     return `Você tem ${activePositions.length} posições ativas`;
   })();
 
@@ -390,7 +390,7 @@ export const UserDashboard: React.FC = () => {
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[var(--text-primary)] md:text-4xl">
-              {getGreetingByHour()}, {user?.firstName || user?.email || 'Usuário'}! 👋
+              {getGreetingByHour()}, {user?.firstName || user?.email || 'Usuário'}
             </h1>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">{subtitle}</p>
           </div>
@@ -453,7 +453,7 @@ export const UserDashboard: React.FC = () => {
 
                   const statusLabel =
                     proposal.status === 'APPROVED'
-                      ? 'Aprovado ✅'
+                      ? 'Aprovado'
                       : proposal.status === 'REJECTED'
                         ? 'Rejeitado'
                         : 'Aguardando revisão';
@@ -668,9 +668,7 @@ export const UserDashboard: React.FC = () => {
                         <div key={position.id} className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
                           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                             <div>
-                              <span className="text-xs text-[var(--text-muted)]">
-                                {position.categoryEmoji} {position.categoryName}
-                              </span>
+                              <span className="text-xs text-[var(--text-muted)]">{position.categoryName}</span>
                               <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{position.title}</p>
                               <div className="mt-2 flex flex-wrap gap-3 text-sm">
                                 <span className={position.rawSide === 'YES' ? 'text-[#34d399]' : 'text-[#f87171]'}>{position.side}</span>
@@ -735,7 +733,7 @@ export const UserDashboard: React.FC = () => {
                                 </p>
                                 {position.isWinner ? (
                                   position.claimed ? (
-                                    <span className="text-xs font-semibold text-[#6ee7b7]">Sacado ✅</span>
+                                    <span className="text-xs font-semibold text-[#6ee7b7]">Sacado</span>
                                   ) : (
                                     <button
                                       onClick={() => void handleClaimInline(position)}
@@ -760,7 +758,7 @@ export const UserDashboard: React.FC = () => {
 
               <aside className="space-y-5">
                 <section className="vp-card p-5">
-                  <h3 className="mb-3 text-lg font-semibold text-[var(--text-primary)]">💰 Saldo do Cofre</h3>
+                  <h3 className="mb-3 text-lg font-semibold text-[var(--text-primary)]">Saldo do Cofre</h3>
 
                   <p className="mono-value text-3xl font-bold text-[var(--text-primary)]">${formatUsd(vaultData.availableBalance)}</p>
                   <p className="mt-1 text-sm text-[var(--text-secondary)]">≈ {vaultData.availableBalance.toFixed(0)} USDT disponível</p>
@@ -810,16 +808,16 @@ export const UserDashboard: React.FC = () => {
                           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">● {dateLabel}</p>
                           <div className="space-y-2">
                             {items.map((item) => {
-                              const icon =
+                              const typeLabel =
                                 item.type === 'CLAIM'
-                                  ? '✅'
+                                  ? 'CLAIM'
                                   : item.type === 'DEPOSIT'
-                                    ? '💰'
+                                    ? 'DEPOSIT'
                                     : item.type === 'BET'
-                                      ? '🎯'
+                                      ? 'BET'
                                       : item.type === 'WITHDRAWAL'
-                                        ? '🏦'
-                                        : '❌';
+                                        ? 'WITHDRAW'
+                                        : 'LOSS';
 
                               const positive = item.type === 'CLAIM' || item.type === 'DEPOSIT' || item.type === 'REFUND';
                               const amountColor = positive ? 'text-[#34d399]' : 'text-[#f87171]';
@@ -828,7 +826,7 @@ export const UserDashboard: React.FC = () => {
                               return (
                                 <div key={item.id} className="text-xs text-[var(--text-secondary)]">
                                   <p>
-                                    <span className="mr-1">{icon}</span>
+                                    <span className="mr-1 text-[var(--text-muted)]">{typeLabel}</span>
                                     <span className={`mono-value ${amountColor}`}>
                                       {prefix}${formatUsd(Math.abs(item.amount))}
                                     </span>{' '}
@@ -860,7 +858,7 @@ export const UserDashboard: React.FC = () => {
 
             <section className="mt-7">
               <div className="mb-4">
-                <h2 className="text-xl font-semibold text-[var(--text-primary)]">🔥 Mercados em Alta para Você</h2>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">Mercados em Alta para Você</h2>
                 <p className="text-sm text-[var(--text-secondary)]">Baseado nos seus interesses em {interestLabel}</p>
               </div>
 

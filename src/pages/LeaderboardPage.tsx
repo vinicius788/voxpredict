@@ -35,11 +35,11 @@ type MyLeaderboardData = {
 };
 
 const BADGES: Record<string, { icon: string; label: string; desc: string }> = {
-  early_adopter: { icon: '⭐', label: 'Early Adopter', desc: 'Entre os primeiros usuários' },
-  whale: { icon: '🐋', label: 'Baleia', desc: 'Volume > $10.000' },
-  prophet: { icon: '🔮', label: 'Profeta', desc: '70%+ acerto com 10+ previsões' },
-  on_fire: { icon: '🔥', label: 'Em Chamas', desc: '5+ acertos seguidos' },
-  veteran: { icon: '🏆', label: 'Veterano', desc: '50+ previsões corretas' },
+  early_adopter: { icon: 'EA', label: 'Early Adopter', desc: 'Entre os primeiros usuários' },
+  whale: { icon: 'WH', label: 'Baleia', desc: 'Volume > $10.000' },
+  prophet: { icon: 'PR', label: 'Profeta', desc: '70%+ acerto com 10+ previsões' },
+  on_fire: { icon: 'ST', label: 'Streak', desc: '5+ acertos seguidos' },
+  veteran: { icon: 'VT', label: 'Veterano', desc: '50+ previsões corretas' },
 };
 
 const PERIOD_OPTIONS = [
@@ -198,7 +198,7 @@ export const LeaderboardPage: React.FC = () => {
                   {getInitial(top3[1]?.username ?? null)}
                 </div>
                 <div className="w-full rounded-xl border border-gray-400/30 bg-[#1e1e30] p-3 text-center">
-                  <p className="mb-1 text-xs text-gray-400">🥈 2º lugar</p>
+                  <p className="mb-1 text-xs text-gray-400">2º lugar</p>
                   <p className="font-bold text-white">{top3[1]?.username ?? 'Anônimo'}</p>
                   <p className={`${(top3[1]?.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'} text-sm`}>
                     {top3[1]?.profitFormatted ?? '$0'}
@@ -208,18 +208,17 @@ export const LeaderboardPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className="mb-1 text-2xl">👑</div>
                 <div className="mb-2 flex h-20 w-20 items-center justify-center rounded-full border-2 border-amber-500 bg-amber-500/20 text-3xl">
                   {getInitial(top3[0]?.username ?? null)}
                 </div>
                 <div className="w-full rounded-xl border border-amber-500/30 bg-[#1e1e30] p-3 text-center">
-                  <p className="mb-1 text-xs text-amber-400">🥇 1º lugar</p>
+                  <p className="mb-1 text-xs text-amber-400">1º lugar</p>
                   <p className="text-lg font-bold text-white">{top3[0]?.username ?? 'Anônimo'}</p>
                   <p className={`${(top3[0]?.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {top3[0]?.profitFormatted ?? '$0'}
                   </p>
                   <p className="text-xs text-gray-400">{top3[0]?.winRateFormatted ?? '0%'} acerto</p>
-                  {(top3[0]?.streak || 0) > 2 && <p className="text-xs text-orange-400">🔥 {top3[0]?.streak} seguidos</p>}
+                  {(top3[0]?.streak || 0) > 2 && <p className="text-xs text-orange-400">Streak {top3[0]?.streak}</p>}
                 </div>
               </div>
 
@@ -228,7 +227,7 @@ export const LeaderboardPage: React.FC = () => {
                   {getInitial(top3[2]?.username ?? null)}
                 </div>
                 <div className="w-full rounded-xl border border-amber-700/30 bg-[#1e1e30] p-3 text-center">
-                  <p className="mb-1 text-xs text-amber-700">🥉 3º lugar</p>
+                  <p className="mb-1 text-xs text-amber-700">3º lugar</p>
                   <p className="font-bold text-white">{top3[2]?.username ?? 'Anônimo'}</p>
                   <p className={`${(top3[2]?.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'} text-sm`}>
                     {top3[2]?.profitFormatted ?? '$0'}
@@ -260,12 +259,12 @@ export const LeaderboardPage: React.FC = () => {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-white">
                       {user.username ?? 'Anônimo'}
-                      {user.streak >= 3 && <span className="ml-1 text-orange-400">🔥</span>}
+                      {user.streak >= 3 && <span className="ml-1 text-orange-400">ST</span>}
                     </p>
                     <div className="mt-0.5 flex gap-2">
                       {user.badges.map((badge) => (
                         <span key={`${user.id}-${badge}`} title={BADGES[badge]?.desc || badge} className="text-xs text-gray-500">
-                          {BADGES[badge]?.icon || '🏆'}
+                          {BADGES[badge]?.icon || 'VT'}
                         </span>
                       ))}
                     </div>

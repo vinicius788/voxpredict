@@ -55,7 +55,7 @@ const DEFAULT_COLOR_BY_NAME: Record<string, string> = {
   ciencia: '#6366F1',
 };
 
-const ICON_OPTIONS = ['🎯', '🏛️', '₿', '⚽', '💻', '📈', '🎬', '🌍', '💼', '🔬', '🎮', '🏆', '🚀', '📱', '🌐'];
+const ICON_OPTIONS = ['', '', '₿', '', '', '', '', '', '', '', '', '', '', '', ''];
 
 const normalizeKey = (value: string) =>
   value
@@ -98,7 +98,7 @@ const normalizeCategory = (category: Partial<Category>, fallbackOrder: number): 
     id,
     key,
     label,
-    icon: category.icon || '🎯',
+    icon: category.icon || '',
     description: category.description || '',
     active: category.active ?? true,
     color: category.color || getDefaultColor(label, id),
@@ -275,7 +275,7 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = () => {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [modalState, setModalState] = useState<CategoryModalState>({
     label: '',
-    icon: '🎯',
+    icon: '',
     description: '',
     color: '#7C3AED',
   });
@@ -325,7 +325,7 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = () => {
     setModalMode('create');
     setModalState({
       label: '',
-      icon: '🎯',
+      icon: '',
       description: '',
       color: '#7C3AED',
     });
@@ -346,7 +346,7 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = () => {
     setModalMode(null);
     setModalState({
       label: '',
-      icon: '🎯',
+      icon: '',
       description: '',
       color: '#7C3AED',
     });
@@ -375,7 +375,7 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = () => {
         await api.createCategory({
           key: id,
           label,
-          icon: modalState.icon || '🎯',
+          icon: modalState.icon || '',
           description: modalState.description.trim(),
           color: modalState.color || getDefaultColor(label, id),
           active: true,
@@ -400,7 +400,7 @@ export const AdminCategoryManager: React.FC<AdminCategoryManagerProps> = () => {
         await api.updateCategory(modalState.id, {
           key: toCategoryId(label),
           label,
-          icon: modalState.icon || current?.icon || '🎯',
+          icon: modalState.icon || current?.icon || '',
           description: modalState.description.trim(),
           color: modalState.color || current?.color || '#7C3AED',
         });

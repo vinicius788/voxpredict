@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { Link2, MessageCircle } from 'lucide-react';
 import type { Market } from '../types';
 
 interface ShareMarketButtonProps {
@@ -61,7 +62,7 @@ export function ShareMarketButton({ market, userBet }: ShareMarketButtonProps) {
         onClick={() => setShowMenu((prev) => !prev)}
         className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
       >
-        ↗ Compartilhar
+         Compartilhar
       </button>
 
       {showMenu ? (
@@ -76,7 +77,7 @@ export function ShareMarketButton({ market, userBet }: ShareMarketButtonProps) {
             }
             className="mb-1 flex w-full items-center gap-3 rounded-lg bg-green-600 px-3 py-2 text-sm text-white transition-colors hover:bg-green-500"
           >
-            <span>💬</span>
+            <MessageCircle className="h-4 w-4" />
             WhatsApp
           </button>
           <button
@@ -101,7 +102,7 @@ export function ShareMarketButton({ market, userBet }: ShareMarketButtonProps) {
             onClick={() => void copyLink()}
             className="flex w-full items-center gap-3 rounded-lg bg-white/10 px-3 py-2 text-sm text-white transition-colors hover:bg-white/20"
           >
-            <span>🔗</span>
+            <Link2 className="h-4 w-4" />
             Copiar link
           </button>
         </div>

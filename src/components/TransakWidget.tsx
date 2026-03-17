@@ -143,7 +143,7 @@ export const TransakWidget: React.FC<TransakWidgetProps> = ({
       disabled={disabled}
       className="w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 py-3 font-medium text-white transition-all hover:from-green-500 hover:to-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      💳 Depositar com PIX ou Cartão
+       Depositar com PIX ou Cartão
     </button>
   );
 };

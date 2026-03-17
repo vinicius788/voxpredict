@@ -99,17 +99,17 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
   }, []);
 
   const handleResolveMarket = async (market: MarketForOracle) => {
-    // 🎯 BLOQUEIO: Check if market has expired
+    //  BLOQUEIO: Check if market has expired
     const now = new Date();
     if (now < market.endTime) {
-      toast.error(`⚠️ Market has not expired yet. Expires on ${market.endTime.toLocaleDateString('pt-BR')}`);
+      toast.error(` Market has not expired yet. Expires on ${market.endTime.toLocaleDateString('pt-BR')}`);
       return;
     }
 
     setIsProcessing(true);
     
     try {
-      toast.loading(`🔮 Consulting oracle for: ${market.question}`, { id: 'oracle' });
+      toast.loading(` Consulting oracle for: ${market.question}`, { id: 'oracle' });
       
       const result = await oracleService.resolveMarket(market);
       
@@ -119,10 +119,10 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
       }));
 
       if (result.result === 'MANUAL') {
-        toast.error(`⚠️ Manual resolution required: ${result.reasoning}`, { id: 'oracle' });
+        toast.error(`Manual resolution required: ${result.reasoning}`, { id: 'oracle' });
       } else {
         toast.success(
-          `✅ Market automatically resolved: ${result.result} (${result.confidence}% confidence)`, 
+          `Market automatically resolved: ${result.result} (${result.confidence}% confidence)`,
           { id: 'oracle', duration: 5000 }
         );
         
@@ -143,13 +143,13 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
     setIsProcessing(true);
     
     try {
-      toast.loading('🔮 Running oracle on all markets...', { id: 'oracle-all' });
+      toast.loading('Running oracle on all markets...', { id: 'oracle-all' });
       
       let resolvedCount = 0;
       const now = new Date();
 
       for (const market of pendingMarkets) {
-        // 🎯 BLOQUEIO: Only resolve expired markets
+        //  BLOQUEIO: Only resolve expired markets
         if (now < market.endTime) {
           console.log(`Market ${market.id} has not expired yet`);
           continue;
@@ -173,7 +173,7 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
       }
 
       if (resolvedCount > 0) {
-        toast.success(`🎉 ${resolvedCount} markets automatically resolved!`, { 
+        toast.success(` ${resolvedCount} markets automatically resolved!`, { 
           id: 'oracle-all',
           duration: 4000 
         });
@@ -225,7 +225,7 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
             </div>
             <div>
               <h2 className={`text-xl font-semibold ${themeClasses.text}`}>
-                🔮 Automatic Oracle
+                 Automatic Oracle
               </h2>
               <p className={`text-sm ${themeClasses.textSecondary}`}>
                 Automatic resolution based on trusted public data
@@ -252,13 +252,13 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
           </button>
         </div>
 
-        {/* ⚠️ IMPORTANT WARNING */}
+        {/*  IMPORTANT WARNING */}
         <div className={`${isBrandTheme ? 'bg-amber-900/20 border-amber-700' : 'bg-amber-50 border-amber-200'} rounded-xl p-4 border mb-4`}>
           <div className="flex items-start space-x-2">
             <CheckCircle className="w-4 h-4 text-amber-600 mt-0.5" />
             <div>
               <div className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                ⚠️ Active Temporal Protection
+                 Active Temporal Protection
               </div>
               <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                 The oracle can only resolve markets that have already expired. Active markets are protected against premature resolution.
@@ -338,7 +338,7 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
                             ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                             : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
                         }`}>
-                          {isExpired ? '⏰ Expired' : '🟢 Active'}
+                          {isExpired ? 'Expired' : 'Active'}
                         </span>
                       </div>
                     </div>
@@ -458,15 +458,15 @@ export const OracleManager: React.FC<OracleManagerProps> = ({
           <Brain className="w-5 h-5 text-blue-600 mt-0.5" />
           <div>
             <div className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-              🧠 How the Automatic Oracle Works
+               How the Automatic Oracle Works
             </div>
             <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
-              <div>✅ <strong>Cryptocurrencies:</strong> Real-time prices via CoinGecko/CoinMarketCap</div>
-              <div>✅ <strong>Politics:</strong> Official results (TSE) + news analysis</div>
-              <div>✅ <strong>Sports:</strong> Official sports results APIs</div>
-              <div>✅ <strong>Economy:</strong> World Bank and IBGE data</div>
-              <div className="mt-2 font-semibold">⚡ Automatic resolution when confidence ≥ 70%</div>
-              <div className="mt-2 font-semibold text-amber-600">🛡️ Protection: Only resolves expired markets</div>
+              <div> <strong>Cryptocurrencies:</strong> Real-time prices via CoinGecko/CoinMarketCap</div>
+              <div> <strong>Politics:</strong> Official results (TSE) + news analysis</div>
+              <div> <strong>Sports:</strong> Official sports results APIs</div>
+              <div> <strong>Economy:</strong> World Bank and IBGE data</div>
+              <div className="mt-2 font-semibold"> Automatic resolution when confidence ≥ 70%</div>
+              <div className="mt-2 font-semibold text-amber-600"> Protection: Only resolves expired markets</div>
             </div>
           </div>
         </div>

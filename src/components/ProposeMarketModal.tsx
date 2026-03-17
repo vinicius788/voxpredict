@@ -130,7 +130,7 @@ export const ProposeMarketModal: React.FC = () => {
           <div className="w-full max-w-xl rounded-[16px] border border-[rgba(255,255,255,0.08)] bg-[rgba(17,17,27,0.98)] p-5">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">💡 Propor Mercado</h3>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">Propor Mercado</h3>
                 <p className="text-sm text-[var(--text-secondary)]">Sua ideia será revisada pelo admin.</p>
               </div>
               <button

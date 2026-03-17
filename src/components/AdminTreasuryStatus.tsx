@@ -158,7 +158,7 @@ export const AdminTreasuryStatus: React.FC<AdminTreasuryStatusProps> = ({
           </div>
           <div>
             <h3 className={`text-lg font-semibold ${themeClasses.text}`}>
-              💼 Tesouraria da Plataforma
+               Tesouraria da Plataforma
             </h3>
             <p className={`text-sm ${themeClasses.textSecondary}`}>
               Safe Ethereum - Saldo em tempo real
@@ -190,7 +190,7 @@ export const AdminTreasuryStatus: React.FC<AdminTreasuryStatusProps> = ({
       <div className={`${isBrandTheme ? 'bg-gradient-to-r from-green-900/20 to-blue-900/20 border-green-700' : 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200'} rounded-xl p-6 border mb-6`}>
         <div className="text-center">
           <div className={`text-sm ${isBrandTheme ? 'text-green-300' : 'text-green-700'} font-medium mb-2`}>
-            💰 Valor Total da Tesouraria
+             Valor Total da Tesouraria
           </div>
           <div className={`text-4xl font-bold ${isBrandTheme ? 'text-green-300' : 'text-green-800'}`}>
             {safeData.isLoading ? (
@@ -290,7 +290,7 @@ export const AdminTreasuryStatus: React.FC<AdminTreasuryStatusProps> = ({
           <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
           <div>
             <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
-              🔐 Safe Multisig Ethereum
+               Safe Multisig Ethereum
             </div>
             <div className="text-xs text-blue-700 dark:text-blue-400 mt-1">
               Endereço: {VOXPREDICT_SAFE_ADDRESS.slice(0, 10)}...{VOXPREDICT_SAFE_ADDRESS.slice(-8)}

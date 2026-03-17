@@ -90,13 +90,13 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
   useEffect(() => {
     const loadCategories = async () => {
       const defaults: CategoryItem[] = [
-        { id: 'política', label: 'Política', icon: '🏛️', color: getCategoryColor('política') },
+        { id: 'política', label: 'Política', icon: '', color: getCategoryColor('política') },
         { id: 'cripto', label: 'Cripto', icon: '₿', color: getCategoryColor('cripto') },
-        { id: 'esportes', label: 'Esportes', icon: '⚽', color: getCategoryColor('esportes') },
-        { id: 'economia', label: 'Economia', icon: '📈', color: getCategoryColor('economia') },
-        { id: 'tecnologia', label: 'Tecnologia', icon: '💻', color: getCategoryColor('tecnologia') },
-        { id: 'entretenimento', label: 'Entretenimento', icon: '🎬', color: getCategoryColor('entretenimento') },
-        { id: 'geopolítica', label: 'Geopolítica', icon: '🌍', color: getCategoryColor('geopolítica') },
+        { id: 'esportes', label: 'Esportes', icon: '', color: getCategoryColor('esportes') },
+        { id: 'economia', label: 'Economia', icon: '', color: getCategoryColor('economia') },
+        { id: 'tecnologia', label: 'Tecnologia', icon: '', color: getCategoryColor('tecnologia') },
+        { id: 'entretenimento', label: 'Entretenimento', icon: '', color: getCategoryColor('entretenimento') },
+        { id: 'geopolítica', label: 'Geopolítica', icon: '', color: getCategoryColor('geopolítica') },
       ];
 
       try {
@@ -115,7 +115,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
             return {
               id,
               label: item.label,
-              icon: item.icon || '🎯',
+              icon: item.icon || '',
               color: getCategoryColor(id),
             };
           });
@@ -259,7 +259,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
         tags,
       };
 
-      toast.loading('🚀 Criando mercado na blockchain...', { id: 'create-market' });
+      toast.loading('Criando mercado na blockchain...', { id: 'create-market' });
 
       const response = await createMarket(marketData);
       const createdMarket = response?.data || response?.market || response;
@@ -326,7 +326,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
       <div className="admin-form-glass admin-form-header">
         <div className="admin-form-header-main">
           <div className="form-header-icon" aria-hidden="true">
-            <span>⚙️</span>
+            <span></span>
           </div>
           <div>
             <h1>Criar Novo Mercado</h1>
@@ -460,7 +460,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
                 style={{ borderColor: `${previewColor}66` }}
               >
                 <div className="preview-card-badge" style={{ color: previewColor, borderColor: `${previewColor}70` }}>
-                  {selectedCategory?.icon || '🎯'} {selectedCategory?.label || 'Categoria'}
+                  {selectedCategory?.icon || ''} {selectedCategory?.label || 'Categoria'}
                 </div>
 
                 <h3 className="preview-card-title">{previewMarket.title}</h3>
@@ -477,8 +477,8 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
                 </div>
 
                 <div className="preview-card-footer">
-                  <span>💰 $0 volume</span>
-                  <span>{daysUntilClose !== null ? `⏱ ${daysUntilClose}d restantes` : '📅 Defina a data'}</span>
+                  <span>$0 volume</span>
+                  <span>{daysUntilClose !== null ? `${daysUntilClose}d restantes` : 'Defina a data'}</span>
                 </div>
               </div>
 
@@ -508,7 +508,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
                   />
                   <p className="field-error-text mt-2">{showFieldError('closingTime')}</p>
                   {closingTime && daysUntilClose !== null && (
-                    <div className="countdown-preview">⏱ {daysUntilClose} dias restantes</div>
+                    <div className="countdown-preview"> {daysUntilClose} dias restantes</div>
                   )}
                 </div>
 
@@ -595,7 +595,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
                 </>
               ) : (
                 <>
-                  <span>✦</span>
+                  <Plus className="h-4 w-4" />
                   Publicar Mercado
                   <span className="btn-arrow">→</span>
                 </>

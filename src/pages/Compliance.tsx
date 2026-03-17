@@ -66,7 +66,7 @@ export const Compliance: React.FC = () => {
                 A VoxPredict implementa rigorosas políticas para evitar o uso da plataforma em crimes financeiros:
               </p>
               
-              <h3 className="text-xl font-semibold mb-3">🔍 Monitoramento de Transações:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Monitoramento de Transações:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Análise automatizada:</strong> Sistemas de IA monitoram padrões suspeitos</li>
                 <li><strong>Limites de transação:</strong> Valores elevados são sinalizados para revisão</li>
@@ -74,7 +74,7 @@ export const Compliance: React.FC = () => {
                 <li><strong>Relatórios obrigatórios:</strong> Comunicação às autoridades quando necessário</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🚫 Atividades Proibidas:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Atividades Proibidas:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>Lavagem de dinheiro ou ocultação de origem de fundos</li>
                 <li>Financiamento de atividades terroristas</li>
@@ -88,7 +88,7 @@ export const Compliance: React.FC = () => {
                 Implementamos procedimentos de identificação conforme exigências regulatórias:
               </p>
               
-              <h3 className="text-xl font-semibold mb-3">👤 Verificação de Usuários (KYC):</h3>
+              <h3 className="text-xl font-semibold mb-3"> Verificação de Usuários (KYC):</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Identificação via carteira:</strong> Endereço blockchain único por usuário</li>
                 <li><strong>Verificação de email:</strong> Confirmação de identidade digital</li>
@@ -96,7 +96,7 @@ export const Compliance: React.FC = () => {
                 <li><strong>Documentação adicional:</strong> Solicitada para transações de alto valor</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🏢 Verificação de Parceiros (KYB):</h3>
+              <h3 className="text-xl font-semibold mb-3"> Verificação de Parceiros (KYB):</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>Due diligence de fornecedores e parceiros</li>
                 <li>Verificação de licenças e autorizações</li>
@@ -117,7 +117,7 @@ export const Compliance: React.FC = () => {
                 <li><strong>Regulamentação CVM:</strong> Quando aplicável a ativos digitais</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🌍 Padrões Internacionais:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Padrões Internacionais:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>FATF (Financial Action Task Force) - Recomendações AML/CFT</li>
                 <li>GDPR (quando aplicável a usuários europeus)</li>
@@ -128,7 +128,7 @@ export const Compliance: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">4. Prevenção a Fraudes e Manipulação</h2>
               <p className="mb-4">Implementamos múltiplas camadas de proteção:</p>
               
-              <h3 className="text-xl font-semibold mb-3">🔐 Segurança Técnica:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Segurança Técnica:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Auditoria de contratos inteligentes:</strong> Revisão por empresas especializadas</li>
                 <li><strong>Oráculos confiáveis:</strong> Uso de fontes de dados verificadas e múltiplas</li>
@@ -136,7 +136,7 @@ export const Compliance: React.FC = () => {
                 <li><strong>Limites de apostas:</strong> Prevenção de manipulação por grandes volumes</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🛡️ Regras Contra Manipulação:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Regras Contra Manipulação:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li><strong>Proibição de colusão:</strong> Acordos entre usuários para manipular resultados</li>
                 <li><strong>Informações privilegiadas:</strong> Proibido uso de insider information</li>
@@ -183,7 +183,7 @@ export const Compliance: React.FC = () => {
                   <AlertTriangle className="w-6 h-6 text-red-600 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-3">
-                      🚨 Canal de Denúncia
+                       Canal de Denúncia
                     </h3>
                     <div className="space-y-2 text-sm text-red-700 dark:text-red-400">
                       <p><strong>Email:</strong> compliance@voxpredict.com</p>
@@ -196,7 +196,7 @@ export const Compliance: React.FC = () => {
                 </div>
               </div>
 
-              <h3 className="text-xl font-semibold mb-3">📋 Tipos de Denúncia Aceitas:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Tipos de Denúncia Aceitas:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>Manipulação de mercados ou preços</li>
                 <li>Uso de informações privilegiadas</li>
@@ -210,7 +210,7 @@ export const Compliance: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">7. Governança Corporativa</h2>
               <p className="mb-4">A VoxPredict adota as melhores práticas de governança:</p>
               
-              <h3 className="text-xl font-semibold mb-3">🏛️ Estrutura de Governança:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Estrutura de Governança:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Conselho Consultivo:</strong> Especialistas em blockchain, finanças e compliance</li>
                 <li><strong>Comitê de Ética:</strong> Revisão de políticas e procedimentos</li>
@@ -218,7 +218,7 @@ export const Compliance: React.FC = () => {
                 <li><strong>Transparência Financeira:</strong> Relatórios públicos de receitas e gastos</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">📊 Métricas de Compliance:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Métricas de Compliance:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>Taxa de detecção de fraudes: &gt;99.5%</li>
                 <li>Tempo de resposta a denúncias: &lt;48 horas</li>
@@ -231,7 +231,7 @@ export const Compliance: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className={`${isBrandTheme ? 'bg-blue-900/20' : 'bg-blue-50'} rounded-xl p-4`}>
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">📚 Recursos Educacionais</h4>
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2"> Recursos Educacionais</h4>
                   <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
                     <li>• Guias sobre mercados preditivos</li>
                     <li>• Tutoriais de segurança blockchain</li>
@@ -241,7 +241,7 @@ export const Compliance: React.FC = () => {
                 </div>
                 
                 <div className={`${isBrandTheme ? 'bg-amber-900/20' : 'bg-amber-50'} rounded-xl p-4`}>
-                  <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2">⚠️ Avisos de Risco</h4>
+                  <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2"> Avisos de Risco</h4>
                   <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
                     <li>• Risco de perda total do capital</li>
                     <li>• Volatilidade de criptomoedas</li>
@@ -263,14 +263,14 @@ export const Compliance: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className={`${isBrandTheme ? 'bg-gray-700' : 'bg-gray-100'} rounded-xl p-4`}>
-                  <h4 className="font-semibold mb-3">📧 Compliance Geral</h4>
+                  <h4 className="font-semibold mb-3"> Compliance Geral</h4>
                   <p className="text-sm mb-2"><strong>Email:</strong> compliance@voxpredict.com</p>
                   <p className="text-sm mb-2"><strong>Assunto:</strong> [COMPLIANCE] - Sua solicitação</p>
                   <p className="text-sm"><strong>Resposta:</strong> Até 48 horas</p>
                 </div>
                 
                 <div className={`${isBrandTheme ? 'bg-gray-700' : 'bg-gray-100'} rounded-xl p-4`}>
-                  <h4 className="font-semibold mb-3">🚨 Denúncias Urgentes</h4>
+                  <h4 className="font-semibold mb-3"> Denúncias Urgentes</h4>
                   <p className="text-sm mb-2"><strong>Email:</strong> denuncia@voxpredict.com</p>
                   <p className="text-sm mb-2"><strong>Telefone:</strong> +55 (11) 99999-9999</p>
                   <p className="text-sm"><strong>Disponível:</strong> 24/7</p>
@@ -282,7 +282,7 @@ export const Compliance: React.FC = () => {
                   <Shield className="w-5 h-5 text-green-600 mt-0.5" />
                   <div>
                     <div className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
-                      🛡️ Compromisso com a Integridade
+                       Compromisso com a Integridade
                     </div>
                     <div className="text-xs text-green-700 dark:text-green-400">
                       <p>• Operação 100% transparente e auditável</p>

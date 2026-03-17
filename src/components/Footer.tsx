@@ -70,7 +70,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-[var(--border)] pt-5 text-xs text-[var(--text-muted)] md:flex-row md:items-center md:justify-between">
-          <p>© {year} VoxPredict. Todos os direitos reservados.</p>
+          <p> {year} VoxPredict. Todos os direitos reservados.</p>
           <p>
             Aviso legal: VoxPredict não é casa de apostas. Os mercados refletem consenso entre usuários e podem envolver risco financeiro.
           </p>

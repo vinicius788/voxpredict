@@ -64,7 +64,7 @@ export const PrivacyPolicy: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">1. Quais Dados São Coletados</h2>
               <p className="mb-4">A VoxPredict coleta os seguintes tipos de dados pessoais:</p>
               
-              <h3 className="text-xl font-semibold mb-3">📧 Dados de Identificação:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Dados de Identificação:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Nome completo:</strong> Para identificação na plataforma</li>
                 <li><strong>Endereço de email:</strong> Para comunicação e autenticação</li>
@@ -72,7 +72,7 @@ export const PrivacyPolicy: React.FC = () => {
                 <li><strong>Data de nascimento:</strong> Para verificação de idade mínima</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🌐 Dados Técnicos:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Dados Técnicos:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Endereço IP:</strong> Para segurança e prevenção de fraudes</li>
                 <li><strong>Dados de navegação:</strong> Páginas visitadas, tempo de sessão, cliques</li>
@@ -80,7 +80,7 @@ export const PrivacyPolicy: React.FC = () => {
                 <li><strong>Cookies e tecnologias similares:</strong> Para melhorar a experiência do usuário</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">💰 Dados Financeiros:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Dados Financeiros:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li><strong>Histórico de transações:</strong> Apostas, depósitos, saques</li>
                 <li><strong>Saldos de carteira:</strong> Para exibição na interface</li>
@@ -90,28 +90,28 @@ export const PrivacyPolicy: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">2. Finalidade dos Dados</h2>
               <p className="mb-4">Utilizamos seus dados pessoais para as seguintes finalidades:</p>
               
-              <h3 className="text-xl font-semibold mb-3">🔐 Acesso à Plataforma:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Acesso à Plataforma:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li>Autenticação e autorização de usuários</li>
                 <li>Manutenção de sessões seguras</li>
                 <li>Personalização da experiência do usuário</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">📱 Comunicação:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Comunicação:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li>Envio de notificações sobre mercados e resultados</li>
                 <li>Comunicação sobre atualizações da plataforma</li>
                 <li>Suporte técnico e atendimento ao cliente</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🛡️ Segurança e Antifraude:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Segurança e Antifraude:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li>Detecção e prevenção de atividades fraudulentas</li>
                 <li>Monitoramento de padrões suspeitos</li>
                 <li>Cumprimento de obrigações regulatórias</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">📊 Melhoria do Produto:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Melhoria do Produto:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>Análise de uso para melhorar funcionalidades</li>
                 <li>Desenvolvimento de novos recursos</li>
@@ -134,7 +134,7 @@ export const PrivacyPolicy: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">4. Armazenamento e Segurança</h2>
               <p className="mb-4">Implementamos as seguintes medidas de segurança:</p>
               
-              <h3 className="text-xl font-semibold mb-3">🔒 Medidas Técnicas:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Medidas Técnicas:</h3>
               <ul className="list-disc pl-6 mb-4">
                 <li><strong>Criptografia:</strong> Dados sensíveis são criptografados em trânsito e em repouso</li>
                 <li><strong>Controle de acesso:</strong> Acesso restrito apenas a pessoal autorizado</li>
@@ -142,7 +142,7 @@ export const PrivacyPolicy: React.FC = () => {
                 <li><strong>Backup seguro:</strong> Cópias de segurança criptografadas</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-3">🏢 Medidas Organizacionais:</h3>
+              <h3 className="text-xl font-semibold mb-3"> Medidas Organizacionais:</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>Treinamento de equipe em proteção de dados</li>
                 <li>Políticas internas de segurança da informação</li>
@@ -155,28 +155,28 @@ export const PrivacyPolicy: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className={`${isBrandTheme ? 'bg-blue-900/20' : 'bg-blue-50'} rounded-xl p-4`}>
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">👁️ Acesso</h4>
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2"> Acesso</h4>
                   <p className="text-sm text-blue-700 dark:text-blue-400">
                     Solicitar cópia dos seus dados pessoais
                   </p>
                 </div>
                 
                 <div className={`${isBrandTheme ? 'bg-green-900/20' : 'bg-green-50'} rounded-xl p-4`}>
-                  <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">✏️ Correção</h4>
+                  <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2"> Correção</h4>
                   <p className="text-sm text-green-700 dark:text-green-400">
                     Corrigir dados incompletos ou incorretos
                   </p>
                 </div>
                 
                 <div className={`${isBrandTheme ? 'bg-red-900/20' : 'bg-red-50'} rounded-xl p-4`}>
-                  <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">🗑️ Exclusão</h4>
+                  <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2"> Exclusão</h4>
                   <p className="text-sm text-red-700 dark:text-red-400">
                     Solicitar exclusão dos seus dados
                   </p>
                 </div>
                 
                 <div className={`${isBrandTheme ? 'bg-purple-900/20' : 'bg-purple-50'} rounded-xl p-4`}>
-                  <h4 className="font-semibold text-purple-800 dark:text-purple-300 mb-2">📦 Portabilidade</h4>
+                  <h4 className="font-semibold text-purple-800 dark:text-purple-300 mb-2"> Portabilidade</h4>
                   <p className="text-sm text-purple-700 dark:text-purple-400">
                     Transferir dados para outra plataforma
                   </p>
@@ -212,7 +212,7 @@ export const PrivacyPolicy: React.FC = () => {
                   <UserCheck className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <div className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-                      💡 Seus Dados, Seus Direitos
+                       Seus Dados, Seus Direitos
                     </div>
                     <div className="text-xs text-blue-700 dark:text-blue-400">
                       <p>• Você tem controle total sobre seus dados pessoais</p>

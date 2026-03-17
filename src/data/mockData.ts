@@ -1,7 +1,7 @@
 import { Market, User, Notification } from '../types';
 
 export const mockMarkets: Market[] = [
-  // 🎯 1. POLÍTICA E GOVERNOS (Opacos e especulativos)
+  //  1. POLÍTICA E GOVERNOS (Opacos e especulativos)
   {
     id: '1',
     title: 'Ministro da Fazenda Fernando Haddad vai cair até junho 2025?',
@@ -51,7 +51,7 @@ export const mockMarkets: Market[] = [
     tags: ['Reforma', 'Tributária', 'Congresso']
   },
 
-  // 📉 2. INDICADORES ECONÔMICOS (Difíceis de prever)
+  //  2. INDICADORES ECONÔMICOS (Difíceis de prever)
   {
     id: '4',
     title: 'Inflação oficial do Brasil vai superar 6% em 2025?',
@@ -188,7 +188,7 @@ export const mockNotifications: Notification[] = [
   {
     id: '3',
     type: 'achievement',
-    title: 'Parabéns! 🎉',
+    title: 'Parabéns! ',
     message: 'Você atingiu 70% de assertividade em suas previsões',
     timestamp: new Date('2024-02-08T14:20:00Z'),
     read: true

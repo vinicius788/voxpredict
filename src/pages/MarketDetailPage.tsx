@@ -74,7 +74,7 @@ export const MarketDetailPage: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const configuredChainId = Number(import.meta.env.VITE_CHAIN_ID || 80002);
-  const contractAddress = (import.meta.env.VITE_CONTRACT_ADDRESS || '').trim();
+  const fallbackContractAddress = (import.meta.env.VITE_CONTRACT_ADDRESS || '').trim();
 
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [countdown, setCountdown] = useState('');
@@ -152,8 +152,17 @@ export const MarketDetailPage: React.FC<{
     [market],
   );
 
+  const marketContractAddress = (market?.contractAddress || fallbackContractAddress).trim();
+  const hasOnChainContract = Boolean(
+    market &&
+      market.onChainId !== null &&
+      market.onChainId !== undefined &&
+      /^0x[a-fA-F0-9]{40}$/.test(marketContractAddress) &&
+      !/^0x0{40}$/i.test(marketContractAddress),
+  );
+
   const explorerUrl = useMemo(() => {
-    if (!contractAddress) return '#';
+    if (!hasOnChainContract) return null;
 
     const explorers: Record<number, string> = {
       137: 'https://polygonscan.com',
@@ -163,8 +172,8 @@ export const MarketDetailPage: React.FC<{
     };
 
     const baseUrl = explorers[configuredChainId] || explorers[80002];
-    return `${baseUrl}/address/${contractAddress}`;
-  }, [configuredChainId, contractAddress]);
+    return `${baseUrl}/address/${marketContractAddress}`;
+  }, [configuredChainId, hasOnChainContract, marketContractAddress]);
 
   const probabilityHistory = useMemo(() => {
     if (!historyData?.length) return [];
@@ -219,9 +228,9 @@ export const MarketDetailPage: React.FC<{
   };
 
   const copyAddress = async () => {
-    if (!contractAddress) return;
+    if (!hasOnChainContract) return;
 
-    await navigator.clipboard.writeText(contractAddress);
+    await navigator.clipboard.writeText(marketContractAddress);
     toast.success('Endereço do contrato copiado.');
   };
 
@@ -270,17 +279,19 @@ export const MarketDetailPage: React.FC<{
                 disabled
                 className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] opacity-60"
               >
-                ↗ Compartilhar
+                Compartilhar
               </button>
             )}
-            <a
-              href={explorerUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-            >
-              <ExternalLink className="h-4 w-4" /> View on Blockchain
-            </a>
+            {explorerUrl && (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              >
+                <ExternalLink className="h-4 w-4" /> Verificar contrato
+              </a>
+            )}
           </div>
         </div>
 
@@ -501,22 +512,28 @@ export const MarketDetailPage: React.FC<{
 
                 <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
                   <p className="mb-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Endereço</p>
-                  <p className="mono-value break-all text-xs text-[var(--text-primary)]">{contractAddress || 'Não configurado'}</p>
+                  <p className="mono-value break-all text-xs text-[var(--text-primary)]">
+                    {hasOnChainContract ? marketContractAddress : 'Mercado de demonstração'}
+                  </p>
                   <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={copyAddress}
-                      className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-                    >
-                      <Copy className="h-3.5 w-3.5" /> Copiar
-                    </button>
-                    <a
-                      href={explorerUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Polygonscan
-                    </a>
+                    {hasOnChainContract && (
+                      <button
+                        onClick={copyAddress}
+                        className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                      >
+                        <Copy className="h-3.5 w-3.5" /> Copiar
+                      </button>
+                    )}
+                    {explorerUrl && (
+                      <a
+                        href={explorerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> Verificar contrato
+                      </a>
+                    )}
                   </div>
                 </div>
 

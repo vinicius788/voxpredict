@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDownToLine, X } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, Check, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAccount, useConnect, useSwitchChain } from 'wagmi';
 import { useTokenBalance } from '../hooks/useTokenBalance';
@@ -147,7 +147,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
             }`}
           >
-            💳 PIX / Cartão
+            PIX / Cartão
           </button>
           <button
             type="button"
@@ -158,7 +158,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
             }`}
           >
-            🔗 Cripto (USDT)
+            Cripto (USDT)
           </button>
         </div>
 
@@ -207,16 +207,16 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           <div className="space-y-4">
             <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
               <p className="text-xs text-gray-400 flex items-center gap-2">
-                <span className="text-green-400">✓</span> PIX instantâneo
+                <Check className="h-3.5 w-3.5 text-green-400" /> PIX instantâneo
               </p>
               <p className="mt-1 text-xs text-gray-400 flex items-center gap-2">
-                <span className="text-green-400">✓</span> Cartão de crédito/débito
+                <Check className="h-3.5 w-3.5 text-green-400" /> Cartão de crédito/débito
               </p>
               <p className="mt-1 text-xs text-gray-400 flex items-center gap-2">
-                <span className="text-green-400">✓</span> Mínimo R$50
+                <Check className="h-3.5 w-3.5 text-green-400" /> Mínimo R$50
               </p>
               <p className="mt-1 text-xs text-gray-400 flex items-center gap-2">
-                <span className="text-green-400">✓</span> USDC/USDT direto na sua carteira Polygon
+                <Check className="h-3.5 w-3.5 text-green-400" /> USDC/USDT direto na sua carteira Polygon
               </p>
             </div>
 

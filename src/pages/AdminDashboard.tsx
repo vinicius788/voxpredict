@@ -217,7 +217,7 @@ export const AdminDashboard: React.FC<{
       {
         title: 'Active Markets',
         value: activeMarkets,
-        note: activeMarkets === 0 ? '⚠️ Atenção: nenhum mercado ativo' : 'Mercados operando normalmente',
+        note: activeMarkets === 0 ? 'Atenção: nenhum mercado ativo' : 'Mercados operando normalmente',
         trend: createSeries(activeMarkets || 1, 12, 2, 0.8),
         color: activeMarkets === 0 ? '#F59E0B' : '#60A5FA',
       },
@@ -350,7 +350,7 @@ export const AdminDashboard: React.FC<{
           </div>
 
           <div className="relative z-10 mt-4 rounded-[10px] border border-[rgba(245,158,11,0.35)] bg-[rgba(245,158,11,0.1)] p-3 text-sm text-[#fef3c7]">
-            ✅ Verified Administrator Access · Sessão autenticada para controle completo de mercados e tesouraria.
+             Verified Administrator Access · Sessão autenticada para controle completo de mercados e tesouraria.
           </div>
         </section>
 

@@ -80,7 +80,7 @@ export const OracleDashboard: React.FC = () => {
             </div>
             <div>
               <h1 className={`text-3xl font-bold ${themeClasses.text}`}>
-                🔮 Automatic Oracle
+                 Automatic Oracle
               </h1>
               <p className={`${themeClasses.textSecondary}`}>
                 Automatic resolution system based on trusted public data - {adminEmail}
@@ -93,7 +93,7 @@ export const OracleDashboard: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Brain className="w-4 h-4 text-purple-600" />
               <span className="text-sm font-medium text-purple-800 dark:text-purple-300">
-                🧠 Active Oracle - Automatic Resolution Enabled
+                 Active Oracle - Automatic Resolution Enabled
               </span>
             </div>
             <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
@@ -214,7 +214,7 @@ export const OracleDashboard: React.FC = () => {
                   <Shield className="w-4 h-4 text-amber-600 mt-0.5" />
                   <div>
                     <div className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                      ⚠️ Active Temporal Protection
+                       Active Temporal Protection
                     </div>
                     <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                       The oracle can only resolve markets that have already expired. Active markets are protected against premature resolution.

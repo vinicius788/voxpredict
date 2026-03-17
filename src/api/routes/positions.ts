@@ -22,17 +22,17 @@ const toNumber = (value: Prisma.Decimal | number | string | null | undefined) =>
 const getTokenDecimals = (token: string) => TOKEN_DECIMALS[token.toUpperCase()] ?? 6;
 
 const CATEGORY_EMOJI: Record<string, string> = {
-  politica: '🏛️',
-  cripto: '₿',
-  esportes: '⚽',
-  economia: '📈',
-  tecnologia: '💻',
-  geopolitica: '🌎',
+  politica: 'POL',
+  cripto: 'CRP',
+  esportes: 'ESP',
+  economia: 'ECO',
+  tecnologia: 'TEC',
+  geopolitica: 'GEO',
 };
 
 const getCategoryEmoji = (category: string) => {
   const normalized = category.toLowerCase();
-  return CATEGORY_EMOJI[normalized] || '🎯';
+  return CATEGORY_EMOJI[normalized] || 'MKT';
 };
 
 const calculateCurrentOdds = (totalYes: number, totalNo: number, side: 'YES' | 'NO') => {

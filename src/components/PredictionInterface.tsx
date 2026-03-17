@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Trophy, Wallet } from 'lucide-react';
+import { Check, CheckCircle2, Clock3, Loader2, Trophy, Wallet, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Market } from '../types';
 import { useWeb3 } from '../hooks/useWeb3';
@@ -261,7 +261,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const getButtonState = (): { text: string; action: PrimaryAction; className: string } => {
     if (!isSignedIn) {
       return {
-        text: '🔐 Faça login para apostar',
+        text: 'Faça login para apostar',
         action: () => {
           window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signin' } }));
         },
@@ -271,7 +271,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
     if (isOnChainMarket && !isWalletConnected) {
       return {
-        text: '🔗 Conectar carteira para apostar',
+        text: 'Conectar carteira para apostar',
         action: handleConnectWallet,
         className: 'bg-blue-600 text-white hover:bg-blue-500',
       };
@@ -279,7 +279,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
     if (isOnChainMarket && isWrongNetwork) {
       return {
-        text: `⚠️ Trocar para ${chainName}`,
+        text: `Trocar para ${chainName}`,
         action: () => switchChain(expectedChainId),
         className: 'bg-amber-600 text-white hover:bg-amber-500',
       };
@@ -343,7 +343,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   if (isAwaitingResolution) {
     return (
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-        <p className="font-medium text-amber-400">⏰ Mercado encerrado para apostas</p>
+        <p className="font-medium text-amber-400">Mercado encerrado para apostas</p>
         <p className="mt-1 text-sm text-gray-400">Aguardando resolução pelo administrador</p>
       </div>
     );
@@ -405,7 +405,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
     <div className="vp-card p-6">
       {!isOnChainMarket && (
         <div className="mb-4 rounded-[10px] border border-[rgba(59,130,246,0.35)] bg-[rgba(59,130,246,0.12)] p-3">
-          <p className="text-xs font-semibold text-[#93c5fd]">📋 Mercado de demonstração</p>
+          <p className="text-xs font-semibold text-[#93c5fd]">Mercado de demonstração</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Apostas registradas off-chain para testes. Não exige transação na carteira.
           </p>
@@ -414,7 +414,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
       {isOnChainMarket && !isWalletConnected && (
         <div className="mb-4 rounded-[10px] border border-[rgba(59,130,246,0.45)] bg-[rgba(59,130,246,0.16)] p-4">
-          <p className="text-sm font-semibold text-[#93c5fd]">🔌 Carteira desconectada</p>
+          <p className="text-sm font-semibold text-[#93c5fd]">Carteira desconectada</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Você já pode montar sua aposta. Para confirmar na blockchain, conecte a carteira.
           </p>
@@ -430,7 +430,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
       {isOnChainMarket && isWrongNetwork && (
         <div className="mb-4 rounded-[10px] border border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.16)] p-4">
-          <p className="text-sm font-semibold text-[#fcd34d]">⚠️ Rede incorreta</p>
+          <p className="text-sm font-semibold text-[#fcd34d]">Rede incorreta</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Sua carteira está na rede errada. O mercado usa <span className="font-semibold text-[var(--text-primary)]">{chainName}</span>.
           </p>
@@ -482,7 +482,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
           }`}
         >
           <div className="mb-1 flex items-center gap-2">
-            <span className={selectedSide === true ? 'text-green-400' : 'text-gray-400'}>✓</span>
+            <Check className={`h-4 w-4 ${selectedSide === true ? 'text-green-400' : 'text-gray-400'}`} />
             <span className="text-white font-bold">SIM</span>
           </div>
           <div className={`mono-value text-2xl font-bold ${selectedSide === true ? 'text-green-400' : 'text-gray-300'}`}>
@@ -503,7 +503,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
           }`}
         >
           <div className="mb-1 flex items-center gap-2">
-            <span className={selectedSide === false ? 'text-red-400' : 'text-gray-400'}>✗</span>
+            <X className={`h-4 w-4 ${selectedSide === false ? 'text-red-400' : 'text-gray-400'}`} />
             <span className="text-white font-bold">NÃO</span>
           </div>
           <div className={`mono-value text-2xl font-bold ${selectedSide === false ? 'text-red-400' : 'text-gray-300'}`}>
@@ -643,7 +643,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       >
         {isLoading ? (
           <span className="flex items-center justify-center gap-2">
-            <span className="animate-spin">⟳</span> Confirmando...
+            <Loader2 className="h-4 w-4 animate-spin" /> Confirmando...
           </span>
         ) : (
           buttonState.text

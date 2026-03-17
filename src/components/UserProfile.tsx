@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from '../types';
-import { Trophy, Target, DollarSign, TrendingUp, Star } from 'lucide-react';
+import { Trophy, Target, DollarSign, TrendingUp, Star, X } from 'lucide-react';
 
 interface UserProfileProps {
   user: User;
@@ -31,7 +31,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, isOpen, onClose,
               onClick={onClose}
               className={`p-2 ${themeClasses.textSecondary} ${themeClasses.hover} rounded-lg`}
             >
-              ✕
+              <X className="h-4 w-4" />
             </button>
           </div>
 
@@ -96,9 +96,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, isOpen, onClose,
               <span className={`text-sm font-medium ${isBrandTheme ? 'text-blue-300' : 'text-blue-800'}`}>Conta Verificada</span>
             </div>
             <p className={`text-sm ${isBrandTheme ? 'text-blue-400' : 'text-blue-700'}`}>
-              ✔️ Protegido por Blockchain<br />
-              🔒 Plataforma Descentralizada<br />
-              🌎 Foco América Latina
+               Protegido por Blockchain<br />
+               Plataforma Descentralizada<br />
+               Foco América Latina
             </p>
           </div>
         </div>
