@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { AuthButton } from './AuthButton';
 import { ConnectWalletButton } from './ConnectWalletButton';
@@ -31,6 +31,7 @@ export const Header: React.FC = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isAdminArea = isAdmin && isAdminRoute;
   const canShowWalletButton = isSignedIn && !isAdminRoute;
+  const logoIconSrc = '/branding/voxpredict-icon.png';
 
   return (
     <header
@@ -46,33 +47,38 @@ export const Header: React.FC = () => {
       )}
       <div className="section-shell py-3">
         <div className="flex items-center justify-between gap-4">
-          <button
-            onClick={() => navigate('/')}
-            className="group flex items-center gap-2.5 transition-opacity hover:opacity-90"
-          >
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
-              <img
-                src="/branding/voxpredict-icon.png"
-                alt="VoxPredict ícone"
-                className="h-8 w-8 object-contain"
-                loading="eager"
-                decoding="async"
-              />
-            </span>
-            <img
-              src="/branding/voxpredict-logo.png"
-              alt="VoxPredict"
-              className="h-7 w-auto max-w-[160px] object-contain sm:h-8 sm:max-w-[180px]"
-              loading="eager"
-              decoding="async"
-            />
-            <span className="sr-only">VoxPredict</span>
+          <div className="flex items-center gap-2.5">
+            <Link to="/" className="flex items-center transition-opacity hover:opacity-90 md:hidden" aria-label="VoxPredict">
+              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+                <img
+                  src={logoIconSrc}
+                  alt="VoxPredict ícone"
+                  className="h-8 w-8 object-contain"
+                  loading="eager"
+                  decoding="async"
+                />
+              </span>
+            </Link>
+
+            <Link to="/" className="hidden items-center gap-2.5 transition-opacity hover:opacity-90 md:flex" aria-label="VoxPredict">
+              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+                <img
+                  src={logoIconSrc}
+                  alt="VoxPredict ícone"
+                  className="h-8 w-8 object-contain"
+                  loading="eager"
+                  decoding="async"
+                />
+              </span>
+              <span className="text-lg font-bold text-[var(--text-primary)]">VoxPredict</span>
+            </Link>
+
             {isAdminArea && (
-              <span className="vp-badge-pulse animate-pulse rounded-[999px] border border-[#fbbf24] bg-[#f59e0b] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1f2937]">
+              <span className="vp-badge-pulse hidden animate-pulse rounded-[999px] border border-[#fbbf24] bg-[#f59e0b] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1f2937] md:inline-flex">
                 Admin
               </span>
             )}
-          </button>
+          </div>
 
           <nav className="hidden items-center gap-1 lg:flex">
             {visibleItems.map((item) => {
@@ -121,11 +127,27 @@ export const Header: React.FC = () => {
             className="fixed bottom-0 right-0 top-0 z-50 flex w-72 max-w-[86vw] animate-slide-in-right flex-col border-l border-white/10 bg-[#0f0f1a] lg:hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-white/10 p-4">
-              <span className="text-sm font-semibold text-[var(--text-primary)]">Menu</span>
+            <div className="flex items-center gap-2 border-b border-white/10 p-4">
+              <Link
+                to="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 transition-opacity hover:opacity-90"
+                aria-label="VoxPredict"
+              >
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-[8px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+                  <img
+                    src={logoIconSrc}
+                    alt="VoxPredict ícone"
+                    className="h-6 w-6 object-contain"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </span>
+                <span className="text-lg font-bold text-[var(--text-primary)]">VoxPredict</span>
+              </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-[8px] p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                className="ml-auto rounded-[8px] p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
                 aria-label="Fechar menu"
               >
                 <X className="h-4 w-4" />
