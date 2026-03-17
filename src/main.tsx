@@ -22,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <RainbowKitProvider
             initialChain={Number(import.meta.env.VITE_CHAIN_ID || 80002)}
             theme={midnightTheme()}
-            coolMode
+            showRecentTransactions={false}
+            coolMode={false}
+            modalSize="compact"
           >
             <AuthProvider>
               <Web3Provider>

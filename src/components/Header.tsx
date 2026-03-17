@@ -28,7 +28,9 @@ export const Header: React.FC = () => {
     return true;
   });
 
-  const isAdminArea = isAdmin && location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminArea = isAdmin && isAdminRoute;
+  const canShowWalletButton = isSignedIn && !isAdminRoute;
 
   return (
     <header
@@ -94,7 +96,7 @@ export const Header: React.FC = () => {
           <div className="hidden items-center gap-2 lg:flex">
             <AuthButton />
             {isSignedIn && <NotificationCenter />}
-            <ConnectWalletButton />
+            {canShowWalletButton && <ConnectWalletButton />}
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
@@ -157,7 +159,7 @@ export const Header: React.FC = () => {
             <AuthButton />
             <div className="flex items-center justify-between gap-2">
               {isSignedIn && <NotificationCenter />}
-              <ConnectWalletButton />
+              {canShowWalletButton && <ConnectWalletButton />}
             </div>
           </div>
         </aside>
