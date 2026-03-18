@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
+import hre from "hardhat";
 import { ethers } from "ethers";
 
 dotenv.config();
 
-const networkName = (process.env.HARDHAT_NETWORK || "amoy").toLowerCase();
+const networkName = (hre.network?.name || process.env.HARDHAT_NETWORK || "amoy").toLowerCase();
 const isMainnet = networkName === "polygon" || networkName === "mainnet";
 
 const rpcUrl = isMainnet
