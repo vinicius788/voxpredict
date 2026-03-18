@@ -20,7 +20,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider
-            initialChain={Number(import.meta.env.VITE_CHAIN_ID || 80002)}
+            initialChain={Number(import.meta.env.VITE_CHAIN_ID || 137)}
             theme={midnightTheme()}
             showRecentTransactions={false}
             coolMode={false}

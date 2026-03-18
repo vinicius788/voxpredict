@@ -36,10 +36,18 @@ interface VaultData {
 
 const getRpcUrlByChain = (chainId: number) => {
   if (chainId === 137) {
-    return import.meta.env.VITE_POLYGON_RPC_URL || 'https://polygon-rpc.com';
+    return (
+      import.meta.env.VITE_POLYGON_RPC_URL ||
+      import.meta.env.VITE_POLYGON_MAINNET_RPC_URL ||
+      'https://polygon-rpc.com'
+    );
   }
 
-  return import.meta.env.VITE_MUMBAI_RPC_URL || 'https://rpc-amoy.polygon.technology';
+  return (
+    import.meta.env.VITE_POLYGON_AMOY_RPC_URL ||
+    import.meta.env.VITE_MUMBAI_RPC_URL ||
+    'https://rpc-amoy.polygon.technology'
+  );
 };
 
 const waitForTransaction = async (txHash: `0x${string}`, chainId: number, confirmations = 1) => {

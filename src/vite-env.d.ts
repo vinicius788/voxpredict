@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_CHAIN_ID?: string;
   readonly VITE_WALLETCONNECT_PROJECT_ID?: string;
   readonly VITE_POLYGON_RPC_URL?: string;
+  readonly VITE_POLYGON_MAINNET_RPC_URL?: string;
+  readonly VITE_POLYGON_AMOY_RPC_URL?: string;
   readonly VITE_MUMBAI_RPC_URL?: string;
 }
 

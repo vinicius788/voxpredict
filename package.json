@@ -20,6 +20,8 @@
     "hardhat:compile": "hardhat compile",
     "deploy:mumbai": "npm run hardhat:compile && node scripts/deploy-mumbai.mjs",
     "deploy:amoy": "hardhat run contracts/scripts/deploy.ts --network amoy",
+    "deploy:mainnet": "hardhat run contracts/scripts/deploy.ts --network polygon",
+    "verify:mainnet": "hardhat verify --network polygon $CONTRACT_ADDRESS $TREASURY_ADDRESS",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",

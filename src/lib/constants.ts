@@ -1,4 +1,6 @@
-export const CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 80002);
+export const CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 137);
+export const CHAIN_NAME = CHAIN_ID === 137 ? 'Polygon' : 'Polygon Amoy (Testnet)';
+export const BLOCK_EXPLORER = CHAIN_ID === 137 ? 'https://polygonscan.com' : 'https://amoy.polygonscan.com';
 
 export const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
   137: {
@@ -12,6 +14,8 @@ export const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
     DAI: '0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6f',
   },
 };
+
+export const ACTIVE_TOKEN_ADDRESSES = TOKEN_ADDRESSES[CHAIN_ID] || TOKEN_ADDRESSES[137];
 
 export const CONTRACT_ADDRESS = (import.meta.env.VITE_CONTRACT_ADDRESS || '') as `0x${string}`;
 

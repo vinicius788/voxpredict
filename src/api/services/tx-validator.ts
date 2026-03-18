@@ -17,9 +17,13 @@ export interface ClaimValidation {
 }
 
 const getRpcUrl = () =>
+  process.env.POLYGON_MAINNET_RPC_URL ||
   process.env.POLYGON_RPC_URL ||
+  process.env.POLYGON_AMOY_RPC_URL ||
   process.env.MUMBAI_RPC_URL ||
+  process.env.VITE_POLYGON_MAINNET_RPC_URL ||
   process.env.VITE_POLYGON_RPC_URL ||
+  process.env.VITE_POLYGON_AMOY_RPC_URL ||
   process.env.VITE_MUMBAI_RPC_URL ||
   '';
 
@@ -29,7 +33,7 @@ const getContractAddress = () =>
 const getProvider = () => {
   const rpcUrl = getRpcUrl();
   if (!rpcUrl) {
-    throw new Error('RPC URL nao configurada (POLYGON_RPC_URL/MUMBAI_RPC_URL).');
+    throw new Error('RPC URL nao configurada (POLYGON_MAINNET_RPC_URL/POLYGON_RPC_URL/POLYGON_AMOY_RPC_URL).');
   }
   return new ethers.providers.JsonRpcProvider(rpcUrl);
 };
