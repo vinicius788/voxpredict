@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middleware/auth';
+import { getTrendingPolymarketEvents } from '../services/polymarket';
 
 const router = express.Router();
 
@@ -98,6 +99,39 @@ const resolveDateOrFallback = (raw: string | undefined, endDateInput: string) =>
   return fallback.toISOString().slice(0, 10);
 };
 
+const polymarketKeywords = [
+  'argentina',
+  'bitcoin',
+  'bolsonaro',
+  'brasil',
+  'brazil',
+  'ethereum',
+  'latam',
+  'latin',
+  'lula',
+  'real',
+];
+
+const buildPolymarketTrendingContext = async () => {
+  const trending = await getTrendingPolymarketEvents(20);
+  if (!trending.length) return '';
+
+  const relevant = trending.filter((event) => {
+    const haystack = event.title.toLowerCase();
+    return polymarketKeywords.some((keyword) => haystack.includes(keyword));
+  });
+
+  const selected = (relevant.length ? relevant : trending).slice(0, 5);
+  if (!selected.length) return '';
+
+  const lines = selected.map(
+    (event) => `- "${event.title}" (Volume: $${(event.volume / 1000).toFixed(0)}k)`,
+  );
+
+  return `Mercados com maior volume no Polymarket agora (referência global):
+${lines.join('\n')}`;
+};
+
 router.post('/generate-market', authenticate, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const parsed = generateSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -124,8 +158,9 @@ router.post('/generate-market', authenticate, requireAdmin, async (req: Authenti
 
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const polymarketContext = await buildPolymarketTrendingContext();
     const userPrompt = newsText
-      ? `Use a notícia abaixo como contexto principal e, se necessário, complemente com web search para hoje.
+      ? `${polymarketContext ? `${polymarketContext}\n\n` : ''}Use a notícia abaixo como contexto principal e, se necessário, complemente com web search para hoje.
 
 Notícia:
 ${newsText}
@@ -133,7 +168,7 @@ ${newsText}
 Data sugerida para encerramento (se útil): ${endDate || 'não informada'}
 
 Retorne APENAS o array JSON com 5 objetos.`
-      : `Busque as principais notícias do Brasil e América Latina de hoje.
+      : `${polymarketContext ? `${polymarketContext}\n\n` : ''}Busque as principais notícias do Brasil e América Latina de hoje.
 Depois gere 5 sugestões de mercados preditivos baseados nessas notícias.
 Categorias: política brasileira, economia, cripto, esportes, geopolítica LATAM.
 Retorne APENAS um array JSON com 5 objetos no formato especificado.`;

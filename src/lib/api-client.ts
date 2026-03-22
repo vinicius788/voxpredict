@@ -117,6 +117,7 @@ export const api = {
   },
 
   getMarket: (id: number | string) => request<any>(`/api/markets/${id}`),
+  getPolymarketReference: (id: number | string) => request<any>(`/api/markets/${id}/polymarket-reference`),
   getMarketHistory: (id: number | string, period: string) =>
     request<any>(`/api/markets/${id}/history?period=${encodeURIComponent(period)}`),
   createMarket: (input: Record<string, unknown>) =>

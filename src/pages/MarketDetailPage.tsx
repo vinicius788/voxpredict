@@ -30,6 +30,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { PredictionInterface } from '../components/PredictionInterface';
+import { PolymarketReference } from '../components/PolymarketReference';
 import { ShareMarketButton } from '../components/ShareMarketButton';
 import { Market } from '../types';
 import { useMarket, useMarketHistory } from '../hooks/useMarkets';
@@ -550,6 +551,8 @@ export const MarketDetailPage: React.FC<{
                   Powered by Polygon
                 </div>
               </section>
+
+              <PolymarketReference marketId={Number(market.id)} />
 
               <section className="vp-card p-5">
                 <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Detalhes do Mercado</h2>

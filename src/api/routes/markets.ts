@@ -6,6 +6,12 @@ import { prisma } from '../db/prisma';
 import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middleware/auth';
 import { updateUserRankings } from '../jobs/update-rankings';
 import { PREDICTION_MARKET_ABI } from '../../lib/abis/PredictionMarket.abi';
+import {
+  getPolymarketMidpoint,
+  parseClobTokenIds,
+  parseOutcomePrices,
+  searchPolymarketEvents,
+} from '../services/polymarket';
 
 const router = express.Router();
 const PLATFORM_FEE_RATE = 0.03;
@@ -52,6 +58,48 @@ const parseMarketId = (rawId: string) => {
 };
 
 const isHexAddress = (value?: string | null) => Boolean(value && /^0x[a-fA-F0-9]{40}$/.test(value));
+
+const buildPolymarketQuery = (question: string) => {
+  const stopwords = new Set([
+    'acima',
+    'agora',
+    'antes',
+    'apos',
+    'até',
+    'ate',
+    'com',
+    'como',
+    'de',
+    'do',
+    'dos',
+    'em',
+    'fim',
+    'mais',
+    'mercado',
+    'na',
+    'nas',
+    'no',
+    'nos',
+    'para',
+    'sera',
+    'será',
+    'sobre',
+    'this',
+    'vai',
+    'what',
+    'will',
+  ]);
+
+  const terms = question
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((term) => term.length > 3 && !stopwords.has(term));
+
+  return terms.slice(0, 4).join(' ').trim();
+};
 
 const calculateMultiplier = (totalYes: number, totalNo: number, side: 'YES' | 'NO') => {
   const sidePool = side === 'YES' ? totalYes : totalNo;
@@ -181,6 +229,69 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error listing markets:', error);
     return res.status(500).json({ success: false, error: 'Failed to list markets' });
+  }
+});
+
+router.get('/:id/polymarket-reference', async (req: Request, res: Response) => {
+  try {
+    const marketId = parseMarketId(String(req.params.id));
+    if (!marketId) {
+      return res.status(400).json({ success: false, error: 'Invalid market id' });
+    }
+
+    const market = await prisma.market.findUnique({
+      where: { id: marketId },
+      select: {
+        id: true,
+        question: true,
+      },
+    });
+
+    if (!market) {
+      return res.status(404).json({ success: false, error: 'Market not found' });
+    }
+
+    const query = buildPolymarketQuery(market.question) || market.question.slice(0, 64);
+    const events = await searchPolymarketEvents(query, 3);
+    const event = events.find((candidate) => candidate.markets.length > 0) || null;
+
+    if (!event) {
+      return res.status(200).json({ success: true, reference: null });
+    }
+
+    const referenceMarket =
+      [...event.markets]
+        .sort((a, b) => toNumber(b.volume) - toNumber(a.volume))
+        .find((candidate) => candidate.active !== false) || event.markets[0];
+
+    if (!referenceMarket) {
+      return res.status(200).json({ success: true, reference: null });
+    }
+
+    const fallbackPrices = parseOutcomePrices(referenceMarket.outcomePrices);
+    const tokenIds = parseClobTokenIds(referenceMarket.clobTokenIds);
+    const midpoint = tokenIds[0] ? await getPolymarketMidpoint(tokenIds[0]) : null;
+
+    const yesProbability = midpoint ?? fallbackPrices.yes;
+    const noProbability = midpoint !== null ? Math.max(0, 1 - midpoint) : fallbackPrices.no;
+    const yesOdds = yesProbability > 0 ? Number((1 / yesProbability).toFixed(2)) : 2;
+    const noOdds = noProbability > 0 ? Number((1 / noProbability).toFixed(2)) : 2;
+
+    return res.status(200).json({
+      success: true,
+      reference: {
+        title: referenceMarket.question || event.title,
+        url: `https://polymarket.com/event/${event.slug}`,
+        volume: event.volume,
+        yesProbability: Number(yesProbability.toFixed(4)),
+        noProbability: Number(noProbability.toFixed(4)),
+        yesOdds,
+        noOdds,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching Polymarket reference:', error);
+    return res.status(200).json({ success: true, reference: null });
   }
 });
 
