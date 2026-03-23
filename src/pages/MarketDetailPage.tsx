@@ -552,7 +552,7 @@ export const MarketDetailPage: React.FC<{
                 </div>
               </section>
 
-              <PolymarketReference marketId={Number(market.id)} />
+              <PolymarketReference marketId={market.id} />
 
               <section className="vp-card p-5">
                 <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Detalhes do Mercado</h2>

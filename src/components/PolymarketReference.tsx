@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Globe2 } from 'lucide-react';
-import { api } from '../lib/api-client';
 
 type PolymarketReferencePayload = {
+  success?: boolean;
   reference?: {
     title: string;
     url: string;
@@ -12,10 +13,21 @@ type PolymarketReferencePayload = {
     yesOdds: number;
     noOdds: number;
   } | null;
+  data?: {
+    reference?: {
+      title: string;
+      url: string;
+      volume: number;
+      yesProbability: number;
+      noProbability: number;
+      yesOdds: number;
+      noOdds: number;
+    } | null;
+  };
 };
 
 interface PolymarketReferenceProps {
-  marketId: number;
+  marketId: number | string;
 }
 
 const formatCompactCurrency = (value: number) => {
@@ -25,14 +37,34 @@ const formatCompactCurrency = (value: number) => {
 };
 
 export function PolymarketReference({ marketId }: PolymarketReferenceProps) {
+  const normalizedMarketId = useMemo(() => Number(marketId), [marketId]);
+  const apiBaseUrl = useMemo(
+    () => (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, ''),
+    [],
+  );
+
   const referenceQuery = useQuery({
-    queryKey: ['polymarket-reference', marketId],
-    queryFn: () => api.getPolymarketReference(marketId) as Promise<PolymarketReferencePayload>,
+    queryKey: ['polymarket-reference', normalizedMarketId],
+    enabled: Number.isFinite(normalizedMarketId) && normalizedMarketId > 0,
+    queryFn: async () => {
+      const response = await fetch(`${apiBaseUrl}/api/markets/${normalizedMarketId}/polymarket-reference`, {
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as PolymarketReferencePayload;
+      if (!response.ok) {
+        throw new Error('Falha ao carregar referência do Polymarket');
+      }
+
+      return payload;
+    },
     staleTime: 10 * 60 * 1000,
     retry: 1,
   });
 
-  const reference = referenceQuery.data?.reference || null;
+  const reference = referenceQuery.data?.reference ?? referenceQuery.data?.data?.reference ?? null;
 
   if (referenceQuery.isLoading) {
     return (
