@@ -1,30 +1,6 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Globe2 } from 'lucide-react';
-
-type PolymarketReferencePayload = {
-  success?: boolean;
-  reference?: {
-    title: string;
-    url: string;
-    volume: number;
-    yesProbability: number;
-    noProbability: number;
-    yesOdds: number;
-    noOdds: number;
-  } | null;
-  data?: {
-    reference?: {
-      title: string;
-      url: string;
-      volume: number;
-      yesProbability: number;
-      noProbability: number;
-      yesOdds: number;
-      noOdds: number;
-    } | null;
-  };
-};
+import { useEffect, useMemo, useState } from 'react';
+import { ExternalLink, Globe2, Radio } from 'lucide-react';
+import { usePolymarketReference } from '../hooks/usePolymarket';
 
 interface PolymarketReferenceProps {
   marketId: number | string;
@@ -36,37 +12,115 @@ const formatCompactCurrency = (value: number) => {
   return `$${value.toFixed(0)}`;
 };
 
+const extractLivePrice = (input: Record<string, unknown>) => {
+  const directCandidates = [
+    input.price,
+    input.mid,
+    input.last_trade_price,
+    input.lastTradePrice,
+  ];
+
+  for (const candidate of directCandidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value >= 0 && value <= 1) {
+      return value;
+    }
+  }
+
+  const bestBid = Number(input.best_bid ?? input.bestBid ?? input.bid);
+  const bestAsk = Number(input.best_ask ?? input.bestAsk ?? input.ask);
+
+  if (Number.isFinite(bestBid) && Number.isFinite(bestAsk) && bestBid >= 0 && bestAsk >= 0) {
+    const midpoint = (bestBid + bestAsk) / 2;
+    if (midpoint >= 0 && midpoint <= 1) {
+      return midpoint;
+    }
+  }
+
+  return null;
+};
+
 export function PolymarketReference({ marketId }: PolymarketReferenceProps) {
-  const normalizedMarketId = useMemo(() => Number(marketId), [marketId]);
-  const apiBaseUrl = useMemo(
-    () => (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, ''),
-    [],
-  );
+  const { data: reference, isLoading } = usePolymarketReference(marketId);
+  const [liveAssetPrices, setLiveAssetPrices] = useState<Record<string, number>>({});
 
-  const referenceQuery = useQuery({
-    queryKey: ['polymarket-reference', normalizedMarketId],
-    enabled: Number.isFinite(normalizedMarketId) && normalizedMarketId > 0,
-    queryFn: async () => {
-      const response = await fetch(`${apiBaseUrl}/api/markets/${normalizedMarketId}/polymarket-reference`, {
-        headers: {
-          Accept: 'application/json',
-        },
-      });
+  useEffect(() => {
+    setLiveAssetPrices({});
+  }, [reference?.yesTokenId, reference?.noTokenId]);
 
-      const payload = (await response.json().catch(() => ({}))) as PolymarketReferencePayload;
-      if (!response.ok) {
-        throw new Error('Falha ao carregar referência do Polymarket');
+  useEffect(() => {
+    if (!reference?.yesTokenId && !reference?.noTokenId) return;
+
+    const assetIds = [reference.yesTokenId, reference.noTokenId].filter((assetId): assetId is string => Boolean(assetId));
+    if (assetIds.length === 0) return;
+
+    const ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market');
+
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          auth: {},
+          type: 'Market',
+          assets_ids: assetIds,
+          custom_feature_enabled: true,
+        }),
+      );
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as unknown;
+        const messages = Array.isArray(payload) ? payload : [payload];
+
+        messages.forEach((message) => {
+          if (!message || typeof message !== 'object') return;
+
+          const candidate = message as Record<string, unknown>;
+          const assetId = String(candidate.asset_id ?? candidate.assetId ?? candidate.token_id ?? '');
+          if (!assetId || !assetIds.includes(assetId)) return;
+
+          const price = extractLivePrice(candidate);
+          if (price === null) return;
+
+          setLiveAssetPrices((previous) => {
+            if (previous[assetId] === price) return previous;
+            return { ...previous, [assetId]: price };
+          });
+        });
+      } catch {
+        // Ignore transient websocket payload errors.
       }
+    };
 
-      return payload;
-    },
-    staleTime: 10 * 60 * 1000,
-    retry: 1,
-  });
+    return () => ws.close();
+  }, [reference?.noTokenId, reference?.yesTokenId]);
 
-  const reference = referenceQuery.data?.reference ?? referenceQuery.data?.data?.reference ?? null;
+  const liveProbabilities = useMemo(() => {
+    if (!reference) return null;
 
-  if (referenceQuery.isLoading) {
+    const liveYes = reference.yesTokenId ? liveAssetPrices[reference.yesTokenId] : undefined;
+    const liveNo = reference.noTokenId ? liveAssetPrices[reference.noTokenId] : undefined;
+
+    if (liveYes === undefined && liveNo === undefined) return null;
+
+    const yesCandidate = liveYes ?? (liveNo !== undefined ? 1 - liveNo : reference.yesProbability);
+    const noCandidate = liveNo ?? (liveYes !== undefined ? 1 - liveYes : reference.noProbability);
+    const total = yesCandidate + noCandidate;
+
+    if (!Number.isFinite(total) || total <= 0) return null;
+
+    const yesProbability = yesCandidate / total;
+    const noProbability = noCandidate / total;
+
+    return {
+      yesProbability,
+      noProbability,
+      yesOdds: yesProbability > 0 ? 1 / yesProbability : reference.yesOdds,
+      noOdds: noProbability > 0 ? 1 / noProbability : reference.noOdds,
+    };
+  }, [liveAssetPrices, reference]);
+
+  if (isLoading) {
     return (
       <section className="vp-card p-5">
         <div className="h-4 w-28 animate-pulse rounded bg-[rgba(255,255,255,0.08)]" />
@@ -80,6 +134,11 @@ export function PolymarketReference({ marketId }: PolymarketReferenceProps) {
   }
 
   if (!reference) return null;
+
+  const displayYesProbability = liveProbabilities?.yesProbability ?? reference.yesProbability;
+  const displayNoProbability = liveProbabilities?.noProbability ?? reference.noProbability;
+  const displayYesOdds = liveProbabilities?.yesOdds ?? reference.yesOdds;
+  const displayNoOdds = liveProbabilities?.noOdds ?? reference.noOdds;
 
   return (
     <section className="vp-card p-5">
@@ -101,33 +160,43 @@ export function PolymarketReference({ marketId }: PolymarketReferenceProps) {
         </a>
       </div>
 
-      <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)]">{reference.title}</p>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)]">{reference.title}</p>
+        {liveProbabilities && (
+          <span className="inline-flex items-center gap-1 rounded-[999px] border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.12)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6ee7b7]">
+            <Radio className="h-3.5 w-3.5" />
+            Live
+          </span>
+        )}
+      </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-[12px] border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.08)] p-3">
           <p className="text-xs uppercase tracking-[0.08em] text-[#6ee7b7]">SIM global</p>
-          <p className="mt-2 text-2xl font-semibold text-[#34d399]">{(reference.yesProbability * 100).toFixed(0)}%</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">{reference.yesOdds.toFixed(2)}x</p>
+          <p className="mt-2 text-2xl font-semibold text-[#34d399]">{(displayYesProbability * 100).toFixed(0)}%</p>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">{displayYesOdds.toFixed(2)}x</p>
         </div>
 
         <div className="rounded-[12px] border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.08)] p-3">
           <p className="text-xs uppercase tracking-[0.08em] text-[#fca5a5]">NÃO global</p>
-          <p className="mt-2 text-2xl font-semibold text-[#f87171]">{(reference.noProbability * 100).toFixed(0)}%</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">{reference.noOdds.toFixed(2)}x</p>
+          <p className="mt-2 text-2xl font-semibold text-[#f87171]">{(displayNoProbability * 100).toFixed(0)}%</p>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">{displayNoOdds.toFixed(2)}x</p>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2">
-        <div>
-          <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Volume global</p>
-          <p className="mono-value mt-1 text-sm font-semibold text-[var(--text-primary)]">
-            {formatCompactCurrency(reference.volume)}
-          </p>
+      <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-xs text-[var(--text-secondary)]">
+        <div className="flex items-center justify-between gap-3">
+          <span>Volume live</span>
+          <span className="mono-value font-semibold text-[var(--text-primary)]">
+            {formatCompactCurrency(reference.marketLiveVolume || reference.volumeLive)}
+          </span>
         </div>
-
-        <p className="max-w-[140px] text-right text-[11px] leading-relaxed text-[var(--text-secondary)]">
-          Indicativo para comparar sentimento global com o VoxPredict.
-        </p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span>Volume total</span>
+          <span className="mono-value font-semibold text-[var(--text-primary)]">
+            {formatCompactCurrency(reference.volumeTotal)}
+          </span>
+        </div>
       </div>
     </section>
   );

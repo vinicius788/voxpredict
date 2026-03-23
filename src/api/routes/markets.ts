@@ -7,7 +7,12 @@ import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middle
 import { updateUserRankings } from '../jobs/update-rankings';
 import { PREDICTION_MARKET_ABI } from '../../lib/abis/PredictionMarket.abi';
 import {
+  getEventLiveVolume,
+  getPolymarketComments,
   getPolymarketMidpoint,
+  getPolymarketPriceHistory,
+  type PolymarketEvent,
+  type PolymarketMarket,
   parseClobTokenIds,
   parseOutcomePrices,
   searchPolymarketEvents,
@@ -99,6 +104,26 @@ const buildPolymarketQuery = (question: string) => {
     .filter((term) => term.length > 3 && !stopwords.has(term));
 
   return terms.slice(0, 4).join(' ').trim();
+};
+
+const scorePolymarketCandidate = (sourceQuestion: string, event: PolymarketEvent, candidate: PolymarketMarket) => {
+  const sourceTerms = new Set(buildPolymarketQuery(sourceQuestion).split(' ').filter(Boolean));
+  const targetTerms = new Set(
+    `${event.title} ${candidate.question}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9\s]/g, ' ')
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((term) => term.length > 3),
+  );
+
+  let overlap = 0;
+  sourceTerms.forEach((term) => {
+    if (targetTerms.has(term)) overlap += 1;
+  });
+
+  return overlap * 1000 + toNumber(candidate.volume) + event.volume * 0.001;
 };
 
 const calculateMultiplier = (totalYes: number, totalNo: number, side: 'YES' | 'NO') => {
@@ -261,8 +286,9 @@ router.get('/:id/polymarket-reference', async (req: Request, res: Response) => {
 
     const referenceMarket =
       [...event.markets]
-        .sort((a, b) => toNumber(b.volume) - toNumber(a.volume))
-        .find((candidate) => candidate.active !== false) || event.markets[0];
+        .filter((candidate) => candidate.active !== false)
+        .sort((a, b) => scorePolymarketCandidate(market.question, event, b) - scorePolymarketCandidate(market.question, event, a))[0] ||
+      event.markets[0];
 
     if (!referenceMarket) {
       return res.status(200).json({ success: true, reference: null });
@@ -270,23 +296,39 @@ router.get('/:id/polymarket-reference', async (req: Request, res: Response) => {
 
     const fallbackPrices = parseOutcomePrices(referenceMarket.outcomePrices);
     const tokenIds = parseClobTokenIds(referenceMarket.clobTokenIds);
-    const midpoint = tokenIds[0] ? await getPolymarketMidpoint(tokenIds[0]) : null;
+    const [midpoint, liveVolume, comments, history] = await Promise.all([
+      tokenIds[0] ? getPolymarketMidpoint(tokenIds[0]) : Promise.resolve(null),
+      getEventLiveVolume(event.id),
+      getPolymarketComments(event.id, 5),
+      tokenIds[0] ? getPolymarketPriceHistory(tokenIds[0], 30) : Promise.resolve([]),
+    ]);
 
     const yesProbability = midpoint ?? fallbackPrices.yes;
     const noProbability = midpoint !== null ? Math.max(0, 1 - midpoint) : fallbackPrices.no;
     const yesOdds = yesProbability > 0 ? Number((1 / yesProbability).toFixed(2)) : 2;
     const noOdds = noProbability > 0 ? Number((1 / noProbability).toFixed(2)) : 2;
+    const marketLiveVolume =
+      liveVolume?.markets.find((item) => item.market.toLowerCase() === (referenceMarket.conditionId || '').toLowerCase())?.value || 0;
 
     return res.status(200).json({
       success: true,
       reference: {
         title: referenceMarket.question || event.title,
         url: `https://polymarket.com/event/${event.slug}`,
-        volume: event.volume,
+        eventId: event.id,
+        slug: event.slug,
+        conditionId: referenceMarket.conditionId || null,
+        yesTokenId: tokenIds[0] || null,
+        noTokenId: tokenIds[1] || null,
+        volumeTotal: event.volume,
+        volumeLive: liveVolume?.total || 0,
+        marketLiveVolume,
         yesProbability: Number(yesProbability.toFixed(4)),
         noProbability: Number(noProbability.toFixed(4)),
         yesOdds,
         noOdds,
+        comments,
+        history,
       },
     });
   } catch (error) {

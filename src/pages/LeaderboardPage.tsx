@@ -6,6 +6,7 @@ import { Footer } from '../components/Footer';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api-client';
+import { usePolymarketLeaderboard } from '../hooks/usePolymarket';
 
 type LeaderboardEntry = {
   id: string;
@@ -70,6 +71,7 @@ export const LeaderboardPage: React.FC = () => {
   const { isSignedIn } = useAuth();
   const [period, setPeriod] = useState<(typeof PERIOD_OPTIONS)[number]['key']>('all');
   const [category, setCategory] = useState<(typeof CATEGORY_OPTIONS)[number]['key']>('all');
+  const { data: globalLeaderboard = [] } = usePolymarketLeaderboard(10);
 
   const leaderboardQuery = useQuery({
     queryKey: ['leaderboard', period, category],
@@ -281,6 +283,50 @@ export const LeaderboardPage: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {globalLeaderboard.length > 0 ? (
+              <section className="mt-8 rounded-xl border border-white/10 bg-[#1e1e30] p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Top Traders Globais</h2>
+                    <p className="text-xs text-gray-500">Polymarket</p>
+                  </div>
+                  <a
+                    href="https://polymarket.com/leaderboard"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-gray-500 transition-colors hover:text-gray-300"
+                  >
+                    Ver ranking global
+                  </a>
+                </div>
+
+                <div className="space-y-2">
+                  {globalLeaderboard.map((trader, index) => (
+                    <div
+                      key={trader.proxyWalletAddress}
+                      className="flex items-center justify-between rounded-xl border border-white/5 bg-[#0f0f1a] px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 text-sm text-gray-500">#{index + 1}</span>
+                        <span className="font-mono text-sm text-white">
+                          {trader.proxyWalletAddress.slice(0, 6)}...{trader.proxyWalletAddress.slice(-4)}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <p className={`text-sm font-bold ${trader.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          ${formatUsd(trader.pnl, 0)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(trader.percentPositive * 100).toFixed(0)}% acerto
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </>
         )}
       </main>

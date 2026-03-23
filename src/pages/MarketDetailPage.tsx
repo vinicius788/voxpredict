@@ -13,18 +13,20 @@ import {
 } from 'lucide-react';
 import {
   Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
   Legend,
+  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -34,6 +36,7 @@ import { PolymarketReference } from '../components/PolymarketReference';
 import { ShareMarketButton } from '../components/ShareMarketButton';
 import { Market } from '../types';
 import { useMarket, useMarketHistory } from '../hooks/useMarkets';
+import { usePolymarketReference } from '../hooks/usePolymarket';
 
 type HistoryPeriod = '24h' | '7d' | '30d' | 'all';
 
@@ -85,6 +88,7 @@ export const MarketDetailPage: React.FC<{
 
   const { data: marketQuery, isLoading } = useMarket(hasNumericMarketId ? parsedMarketId : undefined);
   const { data: historyData } = useMarketHistory(hasNumericMarketId ? parsedMarketId : undefined, historyPeriod);
+  const { data: polymarketReference } = usePolymarketReference(hasNumericMarketId ? parsedMarketId : undefined);
   const fallbackMarket = (location.state?.market as Market | undefined) || null;
   const market = marketQuery?.market || fallbackMarket;
 
@@ -186,16 +190,34 @@ export const MarketDetailPage: React.FC<{
     }));
   }, [historyData]);
 
-  const probabilityChartData = useMemo(
-    () =>
-      probabilityHistory.map((point) => ({
-        timestamp: point.timestamp.getTime(),
+  const probabilityChartData = useMemo(() => {
+    const merged = new Map<
+      number,
+      { timestamp: number; simProbability?: number; naoProbability?: number; volume?: number; globalProbability?: number }
+    >();
+
+    probabilityHistory.forEach((point) => {
+      const timestamp = point.timestamp.getTime();
+      merged.set(timestamp, {
+        ...(merged.get(timestamp) || { timestamp }),
+        timestamp,
         simProbability: point.simProbability,
         naoProbability: point.naoProbability,
         volume: point.volume,
-      })),
-    [probabilityHistory],
-  );
+      });
+    });
+
+    (polymarketReference?.history || []).forEach((point) => {
+      const timestamp = point.t * 1000;
+      merged.set(timestamp, {
+        ...(merged.get(timestamp) || { timestamp }),
+        timestamp,
+        globalProbability: Number((point.p * 100).toFixed(2)),
+      });
+    });
+
+    return [...merged.values()].sort((a, b) => a.timestamp - b.timestamp);
+  }, [polymarketReference?.history, probabilityHistory]);
 
   const distributionData = useMemo(() => {
     if (!market) return [];
@@ -397,7 +419,7 @@ export const MarketDetailPage: React.FC<{
 
                 <div className="h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={probabilityChartData} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
+                    <ComposedChart data={probabilityChartData} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
                       <defs>
                         <linearGradient id="simFill" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="rgba(16,185,129,0.45)" />
@@ -432,9 +454,20 @@ export const MarketDetailPage: React.FC<{
                           return (
                             <div className="rounded-[10px] border border-[var(--border)] bg-[var(--brand-800)] p-3 text-xs text-[var(--text-primary)] shadow-lg">
                               <p className="mb-1 text-[var(--text-secondary)]">{format(new Date(point.timestamp), 'dd/MM/yyyy HH:mm')}</p>
-                              <p className="mono-value text-[#34d399]">SIM: {point.simProbability.toFixed(2)}%</p>
-                              <p className="mono-value text-[#f87171]">NÃO: {point.naoProbability.toFixed(2)}%</p>
-                              <p className="mono-value mt-1 text-[var(--text-secondary)]">Vol: {formatCompactCurrency(point.volume)}</p>
+                              {typeof point.simProbability === 'number' ? (
+                                <p className="mono-value text-[#34d399]">SIM: {point.simProbability.toFixed(2)}%</p>
+                              ) : null}
+                              {typeof point.naoProbability === 'number' ? (
+                                <p className="mono-value text-[#f87171]">NÃO: {point.naoProbability.toFixed(2)}%</p>
+                              ) : null}
+                              {typeof point.globalProbability === 'number' ? (
+                                <p className="mono-value text-[#94a3b8]">Global: {point.globalProbability.toFixed(2)}%</p>
+                              ) : null}
+                              {typeof point.volume === 'number' ? (
+                                <p className="mono-value mt-1 text-[var(--text-secondary)]">
+                                  Vol: {formatCompactCurrency(point.volume)}
+                                </p>
+                              ) : null}
                             </div>
                           );
                         }}
@@ -446,6 +479,7 @@ export const MarketDetailPage: React.FC<{
                         stroke="#10B981"
                         fill="url(#simFill)"
                         strokeWidth={2.2}
+                        connectNulls
                         isAnimationActive
                         animationDuration={800}
                       />
@@ -455,10 +489,23 @@ export const MarketDetailPage: React.FC<{
                         stroke="#EF4444"
                         fill="url(#naoFill)"
                         strokeWidth={2.2}
+                        connectNulls
                         isAnimationActive
                         animationDuration={800}
                       />
-                    </AreaChart>
+                      {polymarketReference?.history?.length ? (
+                        <Line
+                          type="monotone"
+                          dataKey="globalProbability"
+                          stroke="#94A3B8"
+                          strokeDasharray="5 5"
+                          strokeWidth={1.5}
+                          dot={false}
+                          connectNulls
+                          name="Global (Polymarket)"
+                        />
+                      ) : null}
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </section>
@@ -553,6 +600,37 @@ export const MarketDetailPage: React.FC<{
               </section>
 
               <PolymarketReference marketId={market.id} />
+
+              {polymarketReference?.comments?.length ? (
+                <section className="vp-card p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-semibold text-[var(--text-primary)]">Opinião Global</h2>
+                      <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">via Polymarket</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {polymarketReference.comments.map((comment) => (
+                      <article
+                        key={comment.id}
+                        className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3"
+                      >
+                        <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{comment.content}</p>
+                        <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--text-muted)]">
+                          <span>{comment.userName || 'Trader global'}</span>
+                          <span>
+                            {formatDistanceToNow(new Date(comment.createdAt), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
 
               <section className="vp-card p-5">
                 <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Detalhes do Mercado</h2>

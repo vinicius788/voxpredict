@@ -27,6 +27,7 @@ import {
   useRecentActivity,
   useUserStats,
 } from '../hooks/useUserDashboard';
+import { usePolymarketProfile } from '../hooks/usePolymarket';
 import { useWeb3 } from '../hooks/useWeb3';
 
 const PLATFORM_FEE_RATE = 0.03;
@@ -133,7 +134,7 @@ export const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isSignedIn, user } = useAuth();
   const { claim } = useClaimWinnings();
-  const { isWalletConnected, connectWallet, chainId, switchChain } = useWeb3();
+  const { isWalletConnected, walletAddress, connectWallet, chainId, switchChain } = useWeb3();
   const hasAccess = Boolean(isSignedIn && user);
   const { unreadCount } = useNotifications(hasAccess);
   const expectedChainId = Number(import.meta.env.VITE_CHAIN_ID || 80002);
@@ -146,6 +147,7 @@ export const UserDashboard: React.FC = () => {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
 
   const { data: marketResponse } = useMarkets({ limit: 120, includeAll: true });
+  const { data: polymarketProfile } = usePolymarketProfile(isWalletConnected ? walletAddress : null);
   const { data: userStats } = useUserStats(hasAccess);
   const { data: myPositions = [] } = useMyPositions(hasAccess);
   const { data: activity = [], isLoading: activityLoading } = useRecentActivity(hasAccess, 20);
@@ -425,6 +427,63 @@ export const UserDashboard: React.FC = () => {
             Minhas Propostas {myProposals.length > 0 ? `(${myProposals.length})` : ''}
           </button>
         </div>
+
+        {polymarketProfile && polymarketProfile.marketsTraded > 0 ? (
+          <section className="vp-card mb-6 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Perfil Polymarket</p>
+                <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
+                  Trader Polymarket {polymarketProfile.verifiedBadge ? 'Verificado' : 'Ativo'}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  {polymarketProfile.name || polymarketProfile.pseudonym || polymarketProfile.proxyWalletAddress}
+                </p>
+              </div>
+
+              <a
+                href={`https://polymarket.com/profile/${polymarketProfile.proxyWalletAddress}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              >
+                Ver perfil público
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
+              <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Mercados</p>
+                <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {polymarketProfile.marketsTraded}
+                </p>
+              </div>
+              <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Win rate recente</p>
+                <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {(polymarketProfile.winRate * 100).toFixed(0)}%
+                </p>
+              </div>
+              <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Volume estimado</p>
+                <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  ${formatUsd(polymarketProfile.estimatedVolume)}
+                </p>
+              </div>
+              <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">P&amp;L recente</p>
+                <p
+                  className={`mono-value mt-1 text-lg font-semibold ${
+                    polymarketProfile.realizedPnl >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'
+                  }`}
+                >
+                  {polymarketProfile.realizedPnl >= 0 ? '+' : ''}${formatUsd(polymarketProfile.realizedPnl)}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {dashboardTab === 'proposals' ? (
           <section className="vp-card p-5">

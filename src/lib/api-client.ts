@@ -102,6 +102,24 @@ export type LeaderboardFilters = {
   limit?: number;
 };
 
+export type PolymarketSearchResult = {
+  id: string;
+  question: string;
+  slug: string | null;
+  conditionId: string | null;
+  yesTokenId: string | null;
+  noTokenId: string | null;
+  eventId: string | null;
+  eventSlug: string | null;
+  eventTitle: string | null;
+  volumeTotal: number;
+  volume24h: number;
+  yesProbability: number;
+  noProbability: number;
+  yesOdds: number;
+  noOdds: number;
+};
+
 export const api = {
   getMarkets: (params?: MarketFilters) => {
     const query = new URLSearchParams();
@@ -120,6 +138,16 @@ export const api = {
   getPolymarketReference: (id: number | string) => request<any>(`/api/markets/${id}/polymarket-reference`),
   getMarketHistory: (id: number | string, period: string) =>
     request<any>(`/api/markets/${id}/history?period=${encodeURIComponent(period)}`),
+  getPolymarketTrending: (limit = 6) =>
+    request<any>(`/api/polymarket/trending?limit=${Math.max(1, Math.floor(limit))}`),
+  getPolymarketLeaderboard: (limit = 10) =>
+    request<any>(`/api/polymarket/leaderboard?limit=${Math.max(1, Math.floor(limit))}`),
+  searchPolymarketMarkets: (query: string, limit = 5) =>
+    request<any>(
+      `/api/polymarket/search-markets?query=${encodeURIComponent(query)}&limit=${Math.max(1, Math.floor(limit))}`,
+    ),
+  getPolymarketProfile: (walletAddress: string) =>
+    request<any>(`/api/polymarket/profile/${encodeURIComponent(walletAddress)}`),
   createMarket: (input: Record<string, unknown>) =>
     request<any>('/api/markets', { method: 'POST', body: JSON.stringify(input) }),
   updateMarket: (id: number | string, input: Record<string, unknown>) =>

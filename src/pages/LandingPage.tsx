@@ -21,6 +21,7 @@ import { MobileBottomNav } from '../components/MobileBottomNav';
 import { MarketCard } from '../components/MarketCard';
 import { Market } from '../types';
 import { useMarkets } from '../hooks/useMarkets';
+import { usePolymarketTrending } from '../hooks/usePolymarket';
 
 const useCountUp = (target: number, duration = 900) => {
   const [value, setValue] = useState(0);
@@ -53,7 +54,15 @@ export const LandingPage: React.FC<{
   const navigate = useNavigate();
   const [favoriteMarkets, setFavoriteMarkets] = useState<string[]>([]);
   const { data: marketsResponse } = useMarkets({ limit: 24, sortBy: 'volume' });
+  const { data: trendingGlobal = [] } = usePolymarketTrending(6);
   const markets: Market[] = marketsResponse?.markets || [];
+
+  const formatGlobalVolume = (value: number) => {
+    if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}k`;
+    return `$${value.toFixed(0)}`;
+  };
 
   const stats = useMemo(() => {
     const activeMarkets = markets.filter((market) => market.status === 'active').length;
@@ -309,6 +318,52 @@ export const LandingPage: React.FC<{
           </div>
         </div>
       </section>
+
+      {trendingGlobal.length > 0 ? (
+        <section className="py-10">
+          <div className="section-shell">
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-[var(--text-primary)]">Em Alta Globalmente</h2>
+                <p className="text-sm text-[var(--text-secondary)]">Mercados com maior volume no mundo agora.</p>
+              </div>
+              <a
+                href="https://polymarket.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+              >
+                via Polymarket
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {trendingGlobal.map((event) => (
+                <a
+                  key={event.id}
+                  href={event.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="vp-card vp-card-hover block p-5"
+                >
+                  <p className="line-clamp-2 text-base font-semibold text-[var(--text-primary)]">{event.title}</p>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-[#34d399]">
+                        SIM {Math.round((event.market?.yesProbability || 0.5) * 100)}%
+                      </span>
+                      <span className="text-[#f87171]">
+                        NÃO {Math.round((event.market?.noProbability || 0.5) * 100)}%
+                      </span>
+                    </div>
+                    <span className="text-xs text-[var(--text-muted)]">{formatGlobalVolume(event.volumeTotal)}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="py-14">
         <div className="section-shell">

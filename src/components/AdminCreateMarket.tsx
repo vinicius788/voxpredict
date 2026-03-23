@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { type Market } from '../types';
 import { useCreateMarket } from '../hooks/useMarkets';
 import { api } from '../lib/api-client';
+import { usePolymarketMarketSuggestions } from '../hooks/usePolymarket';
 import './AdminCreateMarket.css';
 
 interface MarketOption {
@@ -79,6 +80,7 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
   const [closingTime, setClosingTime] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
+  const [suggestionQuery, setSuggestionQuery] = useState('');
   const [minBetAmount, setMinBetAmount] = useState('5');
   const [maxBetAmount, setMaxBetAmount] = useState('1000');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +88,16 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSuggestionQuery(question.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [question]);
+
+  const { data: polymarketSuggestions = [] } = usePolymarketMarketSuggestions(suggestionQuery, 3);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -360,6 +372,27 @@ export const AdminCreateMarket: React.FC<AdminCreateMarketProps> = ({
                   <span className="field-error-text">{showFieldError('question')}</span>
                   <span className={questionCounterClass}>{question.length}/200</span>
                 </div>
+
+                {polymarketSuggestions.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                      Mercados similares no Polymarket
+                    </p>
+                    {polymarketSuggestions.map((suggestion) => (
+                      <div
+                        key={suggestion.id}
+                        className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3 text-sm text-[var(--text-secondary)]"
+                      >
+                        <p className="font-medium text-[var(--text-primary)]">{suggestion.question}</p>
+                        <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-[var(--text-muted)]">
+                          <span>Vol: ${(suggestion.volumeTotal / 1000).toFixed(0)}k</span>
+                          <span>SIM {(suggestion.yesProbability * 100).toFixed(0)}%</span>
+                          <span>NÃO {(suggestion.noProbability * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div>
