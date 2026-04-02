@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Check, CheckCircle2, Clock3, Loader2, Trophy, Wallet, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  Circle,
+  Clock3,
+  Info,
+  Loader2,
+  Wallet,
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Market } from '../types';
 import { useWeb3 } from '../hooks/useWeb3';
@@ -9,6 +18,7 @@ import { useClaimWinnings } from '../hooks/useClaimWinnings';
 import { useUserPosition } from '../hooks/useUserPosition';
 import { SUPPORTED_TOKENS, type SupportedToken } from '../lib/constants';
 import { useAuth } from '../contexts/AuthContext';
+import { ProgressBar } from './ui/VoxPrimitives';
 
 interface PredictionInterfaceProps {
   market: Market;
@@ -135,7 +145,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   const activeSideLabel = selectedSide === false ? 'NÃO' : 'SIM';
   const estimatedReturn = amount > 0 ? amount * activeOdds : 0;
   const estimatedProfit = estimatedReturn - amount;
-  const platformFee = amount * PLATFORM_FEE;
+  const feePreview = amount * PLATFORM_FEE;
 
   const hasPositiveAmount = amount > 0;
   const hasMinimumAmount = amount >= minBet;
@@ -265,15 +275,15 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         action: () => {
           window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signin' } }));
         },
-        className: 'bg-purple-600 text-white hover:bg-purple-500',
+        className: 'bg-[rgba(109,68,255,0.14)] text-[var(--text-primary)] border border-[var(--border-purple)]',
       };
     }
 
     if (isOnChainMarket && !isWalletConnected) {
       return {
-        text: 'Conectar carteira para apostar',
+        text: 'Conectar carteira para confirmar',
         action: handleConnectWallet,
-        className: 'bg-blue-600 text-white hover:bg-blue-500',
+        className: 'bg-[rgba(109,68,255,0.14)] text-[var(--text-primary)] border border-[var(--border-purple)]',
       };
     }
 
@@ -281,15 +291,15 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       return {
         text: `Trocar para ${chainName}`,
         action: () => switchChain(expectedChainId),
-        className: 'bg-amber-600 text-white hover:bg-amber-500',
+        className: 'bg-[var(--action-dim)] text-[var(--text-primary)] border border-[var(--border-purple)]',
       };
     }
 
     if (selectedSide === null) {
       return {
-        text: 'Selecione SIM ou NÃO para apostar',
+        text: 'Selecione SIM ou NÃO',
         action: null,
-        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+        className: 'bg-[var(--bg-surface)] text-[var(--text-tertiary)] border border-[var(--border-faint)]',
       };
     }
 
@@ -297,7 +307,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       return {
         text: 'Digite o valor da aposta',
         action: null,
-        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+        className: 'bg-[var(--bg-surface)] text-[var(--text-tertiary)] border border-[var(--border-faint)]',
       };
     }
 
@@ -305,7 +315,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       return {
         text: `Mínimo $${toCurrency(minBet)}`,
         action: null,
-        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+        className: 'bg-[var(--bg-surface)] text-[var(--text-tertiary)] border border-[var(--border-faint)]',
       };
     }
 
@@ -313,7 +323,7 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       return {
         text: `Máximo $${toCurrency(maxBet)}`,
         action: null,
-        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+        className: 'bg-[var(--bg-surface)] text-[var(--text-tertiary)] border border-[var(--border-faint)]',
       };
     }
 
@@ -321,19 +331,17 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
       return {
         text: 'Saldo insuficiente na carteira',
         action: null,
-        className: 'cursor-not-allowed bg-white/10 text-gray-500',
+        className: 'bg-[var(--bg-surface)] text-[var(--text-tertiary)] border border-[var(--border-faint)]',
       };
     }
 
-    const sideLabel = selectedSide ? 'SIM' : 'NÃO';
-    const sideClass = selectedSide
-      ? 'bg-green-600 text-white shadow-lg shadow-green-500/20 hover:bg-green-500'
-      : 'bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-500';
-
     return {
-      text: `Apostar $${toCurrency(amount)} em ${sideLabel} →`,
+      text: `Confirmar ${activeSideLabel} — $${toCurrency(amount)}`,
       action: handlePlaceBet,
-      className: sideClass,
+      className:
+        selectedSide === true
+          ? 'bg-[var(--green-primary)] text-black font-extrabold shadow-[0_4px_16px_rgba(0,192,118,0.3)]'
+          : 'bg-[var(--red-primary)] text-white font-extrabold shadow-[0_4px_16px_rgba(255,59,92,0.3)]',
     };
   };
 
@@ -342,9 +350,12 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
 
   if (isAwaitingResolution) {
     return (
-      <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-        <p className="font-medium text-amber-400">Mercado encerrado para apostas</p>
-        <p className="mt-1 text-sm text-gray-400">Aguardando resolução pelo administrador</p>
+      <div className="vp-card p-5">
+        <div className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
+          <Clock3 className="h-4 w-4" />
+          Mercado encerrado para apostas
+        </div>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Aguardando resolução pelo administrador.</p>
       </div>
     );
   }
@@ -352,16 +363,15 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   if (isClosed && market.status === 'resolved' && position.hasPosition && !position.claimed && userWon) {
     return (
       <div className="vp-card p-6">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-[999px] border border-[rgba(16,185,129,0.45)] bg-[rgba(16,185,129,0.16)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#6ee7b7]">
-          <Trophy className="h-3.5 w-3.5" /> Você acertou
+        <div className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
+          <CheckCircle2 className="h-4 w-4" />
+          Mercado resolvido a seu favor
         </div>
-        <p className="text-sm text-[var(--text-secondary)]">
-          O mercado foi resolvido a seu favor. Seus ganhos já estão disponíveis para saque.
-        </p>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Seus ganhos já estão disponíveis para saque.</p>
         <button
           onClick={handleClaim}
           disabled={isClaiming}
-          className="vp-btn-primary mt-4 w-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
+          className="mt-4 w-full rounded-[8px] bg-[var(--action)] px-4 py-3 text-sm font-bold text-white disabled:opacity-60"
         >
           {isClaiming ? 'Confirmando saque...' : 'Sacar ganhos'}
         </button>
@@ -372,13 +382,9 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   if (isClosed) {
     return (
       <div className="vp-card p-6 text-center">
-        <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(245,158,11,0.2)] text-[#fbbf24]">
-          <Clock3 className="h-6 w-6" />
-        </div>
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Evento finalizado</h3>
-        <p className="mt-2 text-sm text-[var(--text-secondary)]">
-          Este mercado foi encerrado e não aceita mais previsões.
-        </p>
+        <Clock3 className="mx-auto h-8 w-8 text-[var(--text-secondary)]" />
+        <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">Evento finalizado</h3>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Este mercado foi encerrado e não aceita mais previsões.</p>
       </div>
     );
   }
@@ -386,10 +392,8 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   if (isSuccess) {
     return (
       <div className="vp-card p-6 text-center">
-        <div className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(16,185,129,0.18)] text-[#6ee7b7]">
-          <CheckCircle2 className="h-6 w-6" />
-        </div>
-        <p className="text-sm text-[var(--text-secondary)]">
+        <CheckCircle2 className="mx-auto h-8 w-8 text-[var(--text-primary)]" />
+        <p className="mt-4 text-sm text-[var(--text-secondary)]">
           {isOnChainMarket ? 'Aposta confirmada na blockchain.' : 'Aposta registrada no modo demonstração.'} Você apostou{' '}
           <span className="mono-value text-[var(--text-primary)]">${toCurrency(amount)}</span> em{' '}
           <span className="font-semibold text-[var(--text-primary)]">{selectedSide ? 'SIM' : 'NÃO'}</span>.
@@ -402,135 +406,145 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
   }
 
   return (
-    <div className="vp-card p-6">
-      {!isOnChainMarket && (
-        <div className="mb-4 rounded-[10px] border border-[rgba(59,130,246,0.35)] bg-[rgba(59,130,246,0.12)] p-3">
-          <p className="text-xs font-semibold text-[#93c5fd]">Mercado de demonstração</p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Apostas registradas off-chain para testes. Não exige transação na carteira.
-          </p>
+    <aside className="vp-betting-panel overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[var(--border-faint)] bg-[var(--bg-surface)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-tertiary)]" />
+          <span>{!isOnChainMarket ? 'Demonstração' : 'On-chain'}</span>
         </div>
-      )}
-
-      {isOnChainMarket && !isWalletConnected && (
-        <div className="mb-4 rounded-[10px] border border-[rgba(59,130,246,0.45)] bg-[rgba(59,130,246,0.16)] p-4">
-          <p className="text-sm font-semibold text-[#93c5fd]">Carteira desconectada</p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Você já pode montar sua aposta. Para confirmar na blockchain, conecte a carteira.
-          </p>
-          <button
-            onClick={() => void handleConnectWallet()}
-            className="mt-3 inline-flex items-center gap-2 rounded-[8px] border border-[rgba(59,130,246,0.45)] bg-[rgba(59,130,246,0.25)] px-4 py-2 text-sm font-semibold text-[#bfdbfe]"
-          >
-            <Wallet className="h-4 w-4" />
-            Conectar carteira
-          </button>
+        <div className="flex items-center gap-2">
+          <span>{!isOnChainMarket ? 'off-chain' : 'wallet'}</span>
+          <div className="relative">
+            <select
+              value={effectiveToken}
+              onChange={(event) => setToken(event.target.value as SupportedToken)}
+              disabled={hasForcedToken}
+              className="appearance-none bg-transparent pr-4 text-[11px] uppercase tracking-[0.06em] text-[var(--text-primary)] disabled:opacity-70"
+            >
+              {SUPPORTED_TOKENS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--text-tertiary)]" />
+          </div>
         </div>
-      )}
+      </div>
 
-      {isOnChainMarket && isWrongNetwork && (
-        <div className="mb-4 rounded-[10px] border border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.16)] p-4">
-          <p className="text-sm font-semibold text-[#fcd34d]">Rede incorreta</p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Sua carteira está na rede errada. O mercado usa <span className="font-semibold text-[var(--text-primary)]">{chainName}</span>.
-          </p>
-          <button
-            onClick={() => void switchChain(expectedChainId)}
-            className="mt-3 rounded-[8px] border border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.25)] px-4 py-2 text-sm font-semibold text-[#fcd34d]"
-          >
-            Trocar rede
-          </button>
-        </div>
-      )}
+      <div className="border-b border-[var(--border-faint)] px-4 py-4">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Mercado</div>
+        <p className="text-[14px] font-semibold leading-[1.45] text-[var(--text-primary)]">{market.title}</p>
+      </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-[var(--text-secondary)]">
-          {isOnChainMarket ? (
-            <>
-              Saldo: <span className="mono-value text-[var(--text-primary)]">{balance}</span> {effectiveToken}
-            </>
+      {(isOnChainMarket && !isWalletConnected) || (isOnChainMarket && isWrongNetwork) ? (
+        <div className="border-b border-[var(--border-faint)] px-4 py-3 text-[12px] text-[var(--text-secondary)]">
+          {isOnChainMarket && !isWalletConnected ? (
+            <div className="flex items-start gap-2">
+              <Wallet className="mt-0.5 h-3.5 w-3.5 text-[var(--text-secondary)]" />
+              <span>Monte a ordem agora. A conexão da carteira só é necessária para confirmar na blockchain.</span>
+            </div>
           ) : (
-            <>Modo off-chain ativo</>
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 text-[var(--text-secondary)]" />
+              <span>Rede incorreta. Este mercado usa <strong className="text-[var(--text-primary)]">{chainName}</strong>.</span>
+            </div>
           )}
-        </p>
-        <select
-          value={effectiveToken}
-          onChange={(event) => setToken(event.target.value as SupportedToken)}
-          disabled={hasForcedToken}
-          className="rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-70"
-        >
-          {SUPPORTED_TOKENS.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      </div>
+        </div>
+      ) : null}
 
-      <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-        <p className="mb-1 text-xs uppercase tracking-wider text-gray-500">Faça sua previsão</p>
-        <p className="text-sm leading-relaxed text-gray-300">{market.title}</p>
+      <div className="px-4 pt-4">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Posição</div>
       </div>
+      <div className="border-b border-[var(--border-faint)] px-4 pb-4">
+        {(() => {
+          const simSelected = selectedSide === true;
+          const naoSelected = selectedSide === false;
 
-      <div className="grid grid-cols-2 gap-3">
+          return (
+            <>
         <button
           onClick={() => setSelectedSide((prev) => (prev === true ? null : true))}
-          className={`rounded-xl border-2 p-4 text-left transition-all ${
-            selectedSide === true
-              ? 'border-green-500 bg-green-500/15 shadow-lg shadow-green-500/10'
-              : 'border-white/10 bg-white/5 hover:border-green-500/40 hover:bg-green-500/5'
+          className={`mb-2 w-full rounded-[8px] px-3.5 py-3 text-left transition-all duration-150 ${
+            simSelected
+              ? 'border-2 border-[var(--green-primary)] bg-[rgba(0,192,118,0.14)] shadow-[0_0_0_3px_rgba(0,192,118,0.12)]'
+              : 'border border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--green-border)] hover:bg-[rgba(0,192,118,0.06)]'
           }`}
+          type="button"
         >
-          <div className="mb-1 flex items-center gap-2">
-            <Check className={`h-4 w-4 ${selectedSide === true ? 'text-green-400' : 'text-gray-400'}`} />
-            <span className="text-white font-bold">SIM</span>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <div className={`flex items-center gap-2 mono-value text-[14px] font-bold ${simSelected ? 'text-[var(--green-primary)] opacity-100' : 'text-[var(--text-secondary)] opacity-100'}`}>
+              {simSelected ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+              <span>SIM</span>
+            </div>
+            <span className={`mono-value text-right font-semibold transition-all ${simSelected ? 'text-[17px] text-[var(--gold)]' : 'text-[14px] text-[var(--text-secondary)]'}`}>
+              {yesOdds.toFixed(2)}x
+            </span>
           </div>
-          <div className={`mono-value text-2xl font-bold ${selectedSide === true ? 'text-green-400' : 'text-gray-300'}`}>
-            {yesOdds.toFixed(2)}x
+          <div className="mb-2 flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
+            <span className="mono-value">{yesProbabilityPercent.toFixed(1)}% prob</span>
+            <span className="mono-value">Pool ${toCurrency(totalYes)}</span>
           </div>
-          <div className="mt-1 text-xs text-gray-500">{yesProbabilityPercent.toFixed(1)}% prob.</div>
-          <div className="mt-2 h-1 rounded-full bg-white/10">
-            <div className="h-1 rounded-full bg-green-400 transition-all" style={{ width: `${yesProbabilityPercent}%` }} />
-          </div>
+          <ProgressBar value={yesProbabilityPercent} color="green" height={3} />
         </button>
 
         <button
           onClick={() => setSelectedSide((prev) => (prev === false ? null : false))}
-          className={`rounded-xl border-2 p-4 text-left transition-all ${
-            selectedSide === false
-              ? 'border-red-500 bg-red-500/15 shadow-lg shadow-red-500/10'
-              : 'border-white/10 bg-white/5 hover:border-red-500/40 hover:bg-red-500/5'
+          className={`w-full rounded-[8px] px-3.5 py-3 text-left transition-all duration-150 ${
+            naoSelected
+              ? 'border-2 border-[var(--red-primary)] bg-[rgba(255,59,92,0.14)] shadow-[0_0_0_3px_rgba(255,59,92,0.12)]'
+              : 'border border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--red-border)] hover:bg-[rgba(255,59,92,0.06)]'
           }`}
+          type="button"
         >
-          <div className="mb-1 flex items-center gap-2">
-            <X className={`h-4 w-4 ${selectedSide === false ? 'text-red-400' : 'text-gray-400'}`} />
-            <span className="text-white font-bold">NÃO</span>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <div className={`flex items-center gap-2 mono-value text-[14px] font-bold ${naoSelected ? 'text-[var(--red-primary)] opacity-100' : 'text-[var(--text-secondary)] opacity-100'}`}>
+              {naoSelected ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+              <span>NÃO</span>
+            </div>
+            <span className={`mono-value text-right font-semibold transition-all ${naoSelected ? 'text-[17px] text-[var(--gold)]' : 'text-[14px] text-[var(--text-secondary)]'}`}>
+              {noOdds.toFixed(2)}x
+            </span>
           </div>
-          <div className={`mono-value text-2xl font-bold ${selectedSide === false ? 'text-red-400' : 'text-gray-300'}`}>
-            {noOdds.toFixed(2)}x
+          <div className="mb-2 flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
+            <span className="mono-value">{noProbabilityPercent.toFixed(1)}% prob</span>
+            <span className="mono-value">Pool ${toCurrency(totalNo)}</span>
           </div>
-          <div className="mt-1 text-xs text-gray-500">{noProbabilityPercent.toFixed(1)}% prob.</div>
-          <div className="mt-2 h-1 rounded-full bg-white/10">
-            <div className="h-1 rounded-full bg-red-400 transition-all" style={{ width: `${noProbabilityPercent}%` }} />
-          </div>
+          <ProgressBar value={noProbabilityPercent} color="red" height={3} />
         </button>
+            </>
+          );
+        })()}
       </div>
 
-      <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Valor da aposta</p>
-          <div className="mono-value text-2xl font-bold text-[var(--text-primary)]">${toCurrency(amount)}</div>
+      <div className="px-4 pt-4">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Valor da aposta</div>
+      </div>
+      <div className="border-b border-[var(--border-faint)] px-4 pb-4">
+        <div className="flex items-center gap-2 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-input)] px-4">
+          <span className="mono-value text-[16px] text-[var(--text-secondary)]">$</span>
+          <input
+            type="number"
+            min={minBet}
+            max={maxBet}
+            step="0.01"
+            value={inputValue}
+            onChange={(event) => handleInputChange(event.target.value)}
+            onBlur={handleInputBlur}
+            placeholder="0,00"
+            className="w-full bg-transparent py-3 text-right text-[22px] font-semibold text-[var(--text-primary)] outline-none [appearance:textfield] mono-value [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
         </div>
 
-        <div className="mb-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex gap-1.5">
           {QUICK_AMOUNTS.map((quickAmount) => (
             <button
               key={quickAmount}
               onClick={() => handleQuickAmount(quickAmount)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+              className={`flex-1 rounded-[5px] border px-0 py-1.5 text-center text-[12px] font-semibold mono-value transition-all ${
                 isSameAmount(amount, quickAmount)
-                  ? 'bg-amber-500 text-black'
-                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                  ? 'border-[var(--border-strong)] bg-[rgba(255,255,255,0.05)] text-[var(--text-primary)]'
+                  : 'border-[var(--border-faint)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
               }`}
             >
               ${quickAmount}
@@ -538,8 +552,10 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
           ))}
           <button
             onClick={() => handleQuickAmount(maxBet)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-              isSameAmount(amount, maxBet) ? 'bg-amber-500 text-black' : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            className={`flex-1 rounded-[5px] border px-0 py-1.5 text-center text-[12px] font-semibold mono-value transition-all ${
+              isSameAmount(amount, maxBet)
+                ? 'border-[var(--border-strong)] bg-[rgba(255,255,255,0.05)] text-[var(--text-primary)]'
+                : 'border-[var(--border-faint)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
             }`}
           >
             MAX
@@ -547,90 +563,81 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
         </div>
 
         <input
-          type="number"
+          type="range"
           min={minBet}
           max={maxBet}
-          value={inputValue}
-          onChange={(event) => handleInputChange(event.target.value)}
-          onBlur={handleInputBlur}
-          placeholder={`Mín. $${toCurrency(minBet)}`}
-          className="w-full rounded-lg border border-white/10 bg-[#0f0f1a] px-4 py-3 text-lg font-medium text-white [appearance:textfield] focus:border-amber-500/50 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          step="1"
+          value={amount > 0 ? Math.min(maxBet, Math.max(minBet, amount)) : minBet}
+          onChange={(event) => handleAmountChange(Number(event.target.value))}
+          className="slider mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-[rgba(255,255,255,0.08)]"
         />
 
-        <div className="mt-1 flex justify-between text-xs text-gray-600">
-          <span>Mín: ${toCurrency(minBet)}</span>
-          <span>Máx: ${toCurrency(maxBet)}</span>
+        <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
+          <span className="mono-value">Mín {toCurrency(minBet)}</span>
+          <span className="mono-value">Máx {toCurrency(maxBet)}</span>
         </div>
 
-        {amount > 0 && amount < minBet && <p className="mt-1 text-xs text-red-400">Valor mínimo é ${toCurrency(minBet)}</p>}
-        {amount > maxBet && <p className="mt-1 text-xs text-red-400">Valor máximo é ${toCurrency(maxBet)}</p>}
+        {amount > 0 && amount < minBet ? <p className="mt-2 text-[12px] text-[var(--text-secondary)]">Valor mínimo é ${toCurrency(minBet)}</p> : null}
+        {amount > maxBet ? <p className="mt-2 text-[12px] text-[var(--text-secondary)]">Valor máximo é ${toCurrency(maxBet)}</p> : null}
       </div>
 
-      {amount > 0 && (
-        <div className="mt-3 rounded-xl border border-white/10 p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wide text-gray-500">
-              Apostando em {activeSideLabel} • {activeOdds.toFixed(2)}x
-            </span>
+      {selectedSide !== null && amount >= minBet ? (
+        <div className="animate-[fadeInUp_0.2s_ease] border-b border-[var(--border-faint)] bg-[var(--bg-surface)] py-2">
+          <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Retorno estimado</div>
+          <div className="flex items-center justify-between px-4 py-2 text-[13px]">
+            <span className="text-[var(--text-secondary)]">Apostado</span>
+            <span className="mono-value text-[var(--text-primary)]">${toCurrency(amount)}</span>
           </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-400">Ganho potencial</span>
-              <span className="mono-value text-lg font-bold text-white">${toCurrency(estimatedReturn)}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-400">Lucro estimado</span>
-              <span className={`mono-value text-sm font-semibold ${estimatedProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {estimatedProfit >= 0 ? '+' : ''}${toCurrency(estimatedProfit)}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-400">Sua aposta</span>
-              <span className="mono-value text-sm text-gray-300">${toCurrency(amount)}</span>
-            </div>
-
-            <div className="flex justify-between border-t border-white/5 pt-2">
-              <span className="text-xs text-gray-600">Taxa plataforma (se perder)</span>
-              <span className="mono-value text-xs text-gray-600">-${toCurrency(platformFee)}</span>
-            </div>
+          <div className="flex items-center justify-between px-4 py-2 text-[13px]">
+            <span className="text-[var(--text-secondary)]">Retorno bruto</span>
+            <span className="mono-value text-[var(--text-primary)]">${toCurrency(estimatedReturn)}</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2 text-[13px]">
+            <span className="text-[var(--text-secondary)]">Lucro líquido</span>
+            <span className="mono-value font-semibold text-[var(--text-primary)]">+${toCurrency(estimatedProfit)}</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2 text-[13px]">
+            <span className="text-[var(--text-secondary)]">Taxa plataforma (3%)</span>
+            <span className="mono-value text-[var(--text-tertiary)]">-${toCurrency(feePreview)}</span>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {isLoading && (
-        <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-3 text-xs">
-          <div
-            className={`rounded px-2 py-1 ${
-              ['approving', 'waiting_approval'].includes(step)
-                ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)]'
-            }`}
-          >
-            1. Aprovando
-          </div>
-          <span className="text-[var(--text-muted)]">→</span>
-          <div
-            className={`rounded px-2 py-1 ${
-              ['betting', 'waiting_bet'].includes(step)
-                ? 'bg-[rgba(124,58,237,0.25)] text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)]'
-            }`}
-          >
-            2. Confirmando
-          </div>
-          <span className="text-[var(--text-muted)]">→</span>
-          <div
-            className={`rounded px-2 py-1 ${
-              step === 'success' ? 'bg-[rgba(16,185,129,0.2)] text-[#6ee7b7]' : 'text-[var(--text-secondary)]'
-            }`}
-          >
-            3. Registrado
+      {position.hasPosition ? (
+        <div className="border-b border-[var(--border-faint)] px-4 py-3 text-[12px] text-[var(--text-secondary)]">
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Sua posição</div>
+          <div className="flex flex-wrap items-center gap-3">
+            {position.yesAmountNumber > 0 ? <span className="mono-value text-[var(--text-primary)]">SIM: ${toCurrency(position.yesAmountNumber)}</span> : null}
+            {position.noAmountNumber > 0 ? <span className="mono-value text-[var(--text-primary)]">NÃO: ${toCurrency(position.noAmountNumber)}</span> : null}
+            {position.claimed ? <span className="text-[var(--text-tertiary)]">Sacado</span> : null}
           </div>
         </div>
-      )}
+      ) : null}
+
+      {(isOnChainMarket ? (
+        <div className="px-4 py-3 text-[12px] text-[var(--text-secondary)]">
+          <div className="flex items-center justify-between">
+            <span>Saldo disponível</span>
+            <span className="mono-value text-[var(--text-primary)]">{balance}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 py-3 text-[12px] text-[var(--text-secondary)]">
+          <div className="flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+            <span>Mercado de demonstração com registro off-chain.</span>
+          </div>
+        </div>
+      ))}
+
+      {isLoading ? (
+        <div className="border-t border-[var(--border-faint)] px-4 py-3 text-[12px] text-[var(--text-secondary)]">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>{step === 'approving' || step === 'waiting_approval' ? 'Aprovando token...' : step === 'betting' || step === 'waiting_bet' ? 'Confirmando aposta...' : 'Registrando...'}</span>
+          </div>
+        </div>
+      ) : null}
 
       <button
         onClick={() => {
@@ -639,33 +646,10 @@ export const PredictionInterface: React.FC<PredictionInterfaceProps> = ({ market
           }
         }}
         disabled={isPrimaryDisabled}
-        className={`mt-5 w-full rounded-xl py-4 text-base font-bold transition-all ${buttonState.className}`}
+        className={`m-4 block w-[calc(100%-2rem)] rounded-[8px] px-4 py-3 text-[14px] font-bold transition-all ${buttonState.className} ${isPrimaryDisabled ? 'cursor-not-allowed' : 'hover:brightness-110'}`}
       >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> Confirmando...
-          </span>
-        ) : (
-          buttonState.text
-        )}
+        {buttonState.text}
       </button>
-
-      <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Taxa da plataforma: 3% sobre apostas perdedoras</p>
-
-      {position.hasPosition && (
-        <div className="mt-4 rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-          <p className="mb-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Sua posição no mercado</p>
-          <div className="flex items-center gap-5 text-sm">
-            {position.yesAmountNumber > 0 && (
-              <span className="mono-value text-[#6ee7b7]">SIM: ${toCurrency(position.yesAmountNumber)}</span>
-            )}
-            {position.noAmountNumber > 0 && (
-              <span className="mono-value text-[#fda4af]">NÃO: ${toCurrency(position.noAmountNumber)}</span>
-            )}
-            {position.claimed && <span className="text-xs text-[var(--text-secondary)]">(já sacado)</span>}
-          </div>
-        </div>
-      )}
-    </div>
+    </aside>
   );
 };

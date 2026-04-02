@@ -53,7 +53,7 @@ export const AuthButton: React.FC = () => {
           onClick={() => setShowProfileMenu((prev) => !prev)}
           className="inline-flex items-center gap-2 rounded-[999px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-2 py-1.5 text-sm text-[var(--text-primary)] transition-colors hover:bg-[rgba(255,255,255,0.08)]"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-xs font-semibold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[rgba(139,92,246,0.35)] bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-xs font-semibold text-white shadow-[0_0_18px_rgba(124,58,237,0.2)]">
             {initials}
           </span>
           <span className="hidden max-w-[86px] truncate text-left text-xs font-medium sm:block">

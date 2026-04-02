@@ -63,6 +63,8 @@ model User {
   transactions  Transaction[]
   notifications Notification[]
   proposals     MarketProposal[]
+  comments      Comment[]
+  activities    Activity[]
 }
 
 model Market {
@@ -79,12 +81,15 @@ model Market {
   totalNo         Decimal               @default(0)
   participants    Int                   @default(0)
   token           String                @default("USDT")
+  lastTradeAt     DateTime?
   createdAt       DateTime              @default(now())
   resolvedAt      DateTime?
   updatedAt       DateTime              @updatedAt
 
   probabilityHistory ProbabilitySnapshot[]
   positions          Position[]
+  comments           Comment[]
+  activities         Activity[]
 
   @@index([status, category])
   @@index([endTime])
@@ -166,6 +171,37 @@ model Category {
   @@index([sortOrder, active])
 }
 
+model Comment {
+  id        String   @id @default(cuid())
+  marketId  Int
+  userId    String
+  content   String   @db.Text
+  upvotes   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([marketId, createdAt])
+  @@index([userId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  marketId  Int
+  userId    String
+  type      String   // BET, WIN, LOSS, CLAIM
+  side      String?  // YES, NO
+  amount    Decimal
+  createdAt DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([marketId, createdAt])
+  @@index([createdAt])
+}
+
 model MarketProposal {
   id          Int            @id @default(autoincrement())
   title       String
@@ -182,6 +218,22 @@ model MarketProposal {
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
+}
+
+model ManipulationLog {
+  id              String   @id @default(cuid())
+  userId          String
+  marketId        Int
+  attemptedAmount Float
+  outcome         String
+  direction       String
+  code            String   // INSIDER_TRADING, WHALE_PROTECTION, WASH_TRADING, RATE_LIMIT, NEW_ACCOUNT_LIMIT, INSUFFICIENT_BALANCE
+  reason          String
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([marketId])
+  @@index([code, createdAt])
 }
 
 model MarketTemplate {

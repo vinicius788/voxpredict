@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Globe2, Radio } from 'lucide-react';
+import { ExternalLink, Globe2 } from 'lucide-react';
 import { usePolymarketReference } from '../hooks/usePolymarket';
+import { LiveIndicator, MultiplierBadge, ProgressBar } from './ui/VoxPrimitives';
 
 interface PolymarketReferenceProps {
   marketId: number | string;
@@ -150,37 +151,44 @@ export function PolymarketReference({ marketId }: PolymarketReferenceProps) {
           <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">Polymarket</h2>
         </div>
 
-        <a
-          href={reference.url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-        >
-          <ExternalLink className="h-3.5 w-3.5" /> Ver
-        </a>
+        <div className="flex items-center gap-2">
+          {liveProbabilities ? <LiveIndicator label="Live" /> : null}
+          <a
+            href={reference.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Ver
+          </a>
+        </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)]">{reference.title}</p>
-        {liveProbabilities && (
-          <span className="inline-flex items-center gap-1 rounded-[999px] border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.12)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6ee7b7]">
-            <Radio className="h-3.5 w-3.5" />
-            Live
-          </span>
-        )}
-      </div>
+      <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)]">{reference.title}</p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-[12px] border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.08)] p-3">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#6ee7b7]">SIM global</p>
-          <p className="mt-2 text-2xl font-semibold text-[#34d399]">{(displayYesProbability * 100).toFixed(0)}%</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">{displayYesOdds.toFixed(2)}x</p>
+      <div className="mt-4 space-y-3">
+        <div className="rounded-[14px] border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.08)] p-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#22c55e]" />
+              <span className="font-bold text-[#86efac]">SIM global</span>
+              <span className="mono-value text-[var(--text-secondary)]">{(displayYesProbability * 100).toFixed(0)}%</span>
+            </div>
+            <MultiplierBadge value={displayYesOdds} />
+          </div>
+          <ProgressBar value={displayYesProbability * 100} color="green" animated />
         </div>
 
-        <div className="rounded-[12px] border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.08)] p-3">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#fca5a5]">NÃO global</p>
-          <p className="mt-2 text-2xl font-semibold text-[#f87171]">{(displayNoProbability * 100).toFixed(0)}%</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">{displayNoOdds.toFixed(2)}x</p>
+        <div className="rounded-[14px] border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.08)] p-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444]" />
+              <span className="font-bold text-[#fca5a5]">NÃO global</span>
+              <span className="mono-value text-[var(--text-secondary)]">{(displayNoProbability * 100).toFixed(0)}%</span>
+            </div>
+            <MultiplierBadge value={displayNoOdds} />
+          </div>
+          <ProgressBar value={displayNoProbability * 100} color="red" animated />
         </div>
       </div>
 

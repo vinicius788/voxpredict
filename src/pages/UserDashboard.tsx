@@ -1,6 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Bell, DollarSign, Filter, Landmark, Wallet } from 'lucide-react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Bell,
+  Crown,
+  DollarSign,
+  Filter,
+  Info,
+  Landmark,
+  LineChart,
+  PiggyBank,
+  Send,
+  Wallet,
+} from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -29,6 +42,7 @@ import {
 } from '../hooks/useUserDashboard';
 import { usePolymarketProfile } from '../hooks/usePolymarket';
 import { useWeb3 } from '../hooks/useWeb3';
+import { CategoryBadge, EmptyState, ProgressBar } from '../components/ui/VoxPrimitives';
 
 const PLATFORM_FEE_RATE = 0.03;
 
@@ -42,7 +56,6 @@ type PositionRow = {
   contractAddress?: string;
   title: string;
   categoryName: string;
-  categoryEmoji: string;
   rawSide: 'YES' | 'NO';
   side: 'SIM' | 'NÃO';
   amount: number;
@@ -120,13 +133,11 @@ const normalizeCategory = (category: string | { name: string; emoji?: string }) 
   if (typeof category === 'string') {
     return {
       name: category,
-      emoji: '',
     };
   }
 
   return {
     name: category.name,
-    emoji: '',
   };
 };
 
@@ -211,7 +222,6 @@ export const UserDashboard: React.FC = () => {
         contractAddress: position.market.contractAddress,
         title: position.market.title || position.market.question,
         categoryName: normalizedCategory.name,
-        categoryEmoji: normalizedCategory.emoji,
         rawSide: position.side,
         side: position.side === 'YES' ? 'SIM' : 'NÃO',
         amount,
@@ -389,19 +399,23 @@ export const UserDashboard: React.FC = () => {
       <Header />
 
       <main className="section-shell py-10">
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[var(--text-primary)] md:text-4xl">
+            <h1 className="text-3xl font-black text-[var(--text-primary)] md:text-4xl">
               {getGreetingByHour()}, {user?.firstName || user?.email || 'Usuário'}
             </h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">{subtitle}</p>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">{subtitle}</p>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-[999px] border border-[var(--border)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-sm text-[var(--text-secondary)]">
-            <Bell className="h-4 w-4" />
-            <span>
-              {unreadCount} alerta{unreadCount !== 1 ? 's' : ''}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(124,58,237,0.24)] bg-[rgba(124,58,237,0.12)] px-3 py-2 text-sm text-white">
+              <Crown className="h-4 w-4 text-[#fbbf24]" />
+              <span>{userStats?.ranking ? `Rank #${userStats.ranking}` : 'Sem rank ainda'}</span>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-sm text-[var(--text-secondary)]">
+              <Bell className="h-4 w-4" />
+              <span>{unreadCount} alerta{unreadCount !== 1 ? 's' : ''}</span>
+            </div>
           </div>
         </div>
 
@@ -556,66 +570,80 @@ export const UserDashboard: React.FC = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="vp-card p-5">
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Portfólio</p>
-                <p className="mono-value mt-2 text-2xl font-bold text-[var(--text-primary)]">${formatUsd(portfolioValue)}</p>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {userStats?.ranking ? `Rank #${userStats.ranking}` : 'Sem ranking definido ainda'}
-                </p>
-              </div>
-
-              <div className="vp-card p-5">
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Posições</p>
-                <p className="mono-value mt-2 text-2xl font-bold text-[var(--text-primary)]">{positions.length}</p>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  ⬤ {activePositions.length} ativas · ⬤ {resolvedPositions.length} fechadas
-                </p>
-              </div>
-
-              <div className="vp-card p-5">
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">P&amp;L Realizado</p>
-                <p className={`mono-value mt-2 text-2xl font-bold ${realizedPnl >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>
-                  {realizedPnl >= 0 ? '+' : ''}${formatUsd(realizedPnl)}
-                </p>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">Retornos ${formatUsd(totalWon)}</p>
-              </div>
-
-              <div className="vp-card p-5">
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">P&amp;L Não Realizado</p>
-                <p className={`mono-value mt-2 text-2xl font-bold ${unrealizedPnl >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>
-                  {unrealizedPnl >= 0 ? '+' : ''}${formatUsd(unrealizedPnl)}
-                </p>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">Valor estimado em posições ativas</p>
-              </div>
+              {[
+                {
+                  label: 'Portfólio',
+                  value: `$${formatUsd(portfolioValue)}`,
+                  helper: userStats?.ranking ? `Rank #${userStats.ranking}` : 'Sem ranking definido ainda',
+                  icon: Wallet,
+                  accent: 'from-[#7c3aed] to-[#8b5cf6]',
+                  text: 'text-white',
+                },
+                {
+                  label: 'Posições',
+                  value: String(positions.length),
+                  helper: `${activePositions.length} ativas · ${resolvedPositions.length} fechadas`,
+                  icon: PiggyBank,
+                  accent: 'from-[#2563eb] to-[#60a5fa]',
+                  text: 'text-white',
+                },
+                {
+                  label: 'P&L Realizado',
+                  value: `${realizedPnl >= 0 ? '+' : ''}$${formatUsd(realizedPnl)}`,
+                  helper: `Retornos $${formatUsd(totalWon)}`,
+                  icon: DollarSign,
+                  accent: realizedPnl >= 0 ? 'from-[#16a34a] to-[#22c55e]' : 'from-[#dc2626] to-[#ef4444]',
+                  text: realizedPnl >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]',
+                },
+                {
+                  label: 'P&L Não Realizado',
+                  value: `${unrealizedPnl >= 0 ? '+' : ''}$${formatUsd(unrealizedPnl)}`,
+                  helper: 'Valor estimado em posições ativas',
+                  icon: LineChart,
+                  accent: unrealizedPnl >= 0 ? 'from-[#16a34a] to-[#22c55e]' : 'from-[#dc2626] to-[#ef4444]',
+                  text: unrealizedPnl >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]',
+                },
+              ].map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.label} className="vp-card relative overflow-hidden p-5">
+                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-[7px] border border-white/8 bg-white/5 text-white/80">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="mt-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">{card.label}</p>
+                    <p className={`mono-value mt-3 text-[2rem] font-black ${card.text}`}>{card.value}</p>
+                    <p className="mt-2 text-xs text-[var(--text-secondary)]">{card.helper}</p>
+                  </div>
+                );
+              })}
             </div>
 
             <section className="vp-card mt-6 p-5">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Resumo Financeiro</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-                  <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Total Apostado</p>
-                  <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">${formatUsd(totalStaked)}</p>
-                </div>
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-                  <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Total Ganhado</p>
-                  <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">${formatUsd(totalWon)}</p>
-                </div>
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-                  <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">P&amp;L Realizado</p>
-                  <p className={`mono-value mt-1 text-lg font-semibold ${realizedPnl >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>
-                    {realizedPnl >= 0 ? '+' : ''}${formatUsd(realizedPnl)}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-                  <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">P&amp;L Não Realizado</p>
-                  <p className={`mono-value mt-1 text-lg font-semibold ${unrealizedPnl >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>
-                    {unrealizedPnl >= 0 ? '+' : ''}${formatUsd(unrealizedPnl)}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-                  <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Taxa Total Paga</p>
-                  <p className="mono-value mt-1 text-lg font-semibold text-[var(--text-primary)]">${formatUsd(totalFeePaid)}</p>
-                </div>
+              <div className="mt-4 overflow-hidden rounded-[14px] border border-white/10">
+                {[
+                  ['Total Apostado', `$${formatUsd(totalStaked)}`],
+                  ['Total Ganhado', `$${formatUsd(totalWon)}`],
+                  ['P&L Realizado', `${realizedPnl >= 0 ? '+' : ''}$${formatUsd(realizedPnl)}`],
+                  ['P&L Não Realizado', `${unrealizedPnl >= 0 ? '+' : ''}$${formatUsd(unrealizedPnl)}`],
+                  ['Taxa Total Paga', `$${formatUsd(totalFeePaid)}`],
+                ].map(([label, value], index) => (
+                  <div key={label} className={`grid grid-cols-[1fr_auto] gap-3 px-4 py-3 text-sm ${index > 0 ? 'border-t border-white/8' : ''}`}>
+                    <span className="text-[var(--text-secondary)]">
+                      {label}
+                      {label === 'Taxa Total Paga' ? <span className="ml-2 inline-flex items-center gap-1 text-xs text-[var(--text-muted)]"><Info className="h-3.5 w-3.5" /> taxa acumulada da plataforma</span> : null}
+                    </span>
+                    <span className={`mono-value font-semibold ${
+                      label.includes('P&L')
+                        ? value.startsWith('+')
+                          ? 'text-[#86efac]'
+                          : 'text-[#fca5a5]'
+                        : 'text-white'
+                    }`}>
+                      {value}
+                    </span>
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -644,16 +672,17 @@ export const UserDashboard: React.FC = () => {
                   Carregando histórico do portfólio...
                 </div>
               ) : positions.length === 0 || portfolioHistory.length === 0 ? (
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-8 text-center">
-                  <p className="text-sm text-[var(--text-secondary)]">Faça sua primeira aposta para ver a performance do seu portfólio.</p>
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="vp-btn-primary mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold"
-                  >
-                    <ArrowUpRight className="h-4 w-4" />
-                    Explorar Mercados
-                  </button>
-                </div>
+                <EmptyState
+                  icon={LineChart}
+                  title="Seu portfólio ainda não tem histórico"
+                  description="Faça sua primeira aposta para começar a ver curva de performance, exposição e valor estimado ao longo do tempo."
+                  cta={
+                    <button onClick={() => navigate('/dashboard')} className="vp-btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold">
+                      <ArrowUpRight className="h-4 w-4" />
+                      Explorar Mercados
+                    </button>
+                  }
+                />
               ) : (
                 <div className="h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -711,39 +740,54 @@ export const UserDashboard: React.FC = () => {
                   </div>
 
                   {activePositions.length === 0 ? (
-                    <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-8 text-center">
-                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">Nenhuma posição ativa</h3>
-                      <p className="mt-1 text-sm text-[var(--text-secondary)]">Faça uma aposta para começar a acompanhar seus ganhos em tempo real.</p>
-                      <button
-                        onClick={() => navigate('/dashboard')}
-                        className="vp-btn-primary mt-5 inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold"
-                      >
-                        <ArrowUpRight className="h-4 w-4" /> Explorar Mercados
-                      </button>
-                    </div>
+                    <EmptyState
+                      icon={PiggyBank}
+                      title="Nenhuma posição ativa"
+                      description="Faça uma aposta para começar a acompanhar ganhos, odds e exposição em tempo real."
+                      cta={
+                        <button onClick={() => navigate('/dashboard')} className="vp-btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold">
+                          <ArrowUpRight className="h-4 w-4" />
+                          Explorar Mercados
+                        </button>
+                      }
+                    />
                   ) : (
                     <div className="space-y-3">
                       {activePositions.map((position) => (
-                        <div key={position.id} className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                            <div>
-                              <span className="text-xs text-[var(--text-muted)]">{position.categoryName}</span>
-                              <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{position.title}</p>
-                              <div className="mt-2 flex flex-wrap gap-3 text-sm">
-                                <span className={position.rawSide === 'YES' ? 'text-[#34d399]' : 'text-[#f87171]'}>{position.side}</span>
+                        <div key={position.id} className="rounded-[14px] border border-white/8 bg-white/4 p-4">
+                          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <CategoryBadge category={position.categoryName} compact />
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                  position.rawSide === 'YES'
+                                    ? 'border-[rgba(34,197,94,0.28)] bg-[rgba(34,197,94,0.12)] text-[#86efac]'
+                                    : 'border-[rgba(239,68,68,0.28)] bg-[rgba(239,68,68,0.12)] text-[#fca5a5]'
+                                }`}>
+                                  {position.side}
+                                </span>
+                              </div>
+                              <p className="mt-3 line-clamp-2 text-sm font-semibold text-[var(--text-primary)]">{position.title}</p>
+                              <div className="mt-3 flex flex-wrap gap-3 text-sm">
                                 <span className="mono-value text-[var(--text-secondary)]">Apostado: ${formatUsd(position.amount)}</span>
                                 <span className="mono-value text-[#fbbf24]">{position.currentOdds.toFixed(2)}x</span>
+                                <span className={`mono-value ${position.estimatedProfit >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'}`}>
+                                  {position.estimatedProfit >= 0 ? '+' : ''}${formatUsd(position.estimatedProfit)}
+                                </span>
                               </div>
+                              <ProgressBar
+                                value={position.rawSide === 'YES' ? (position.yesPool + position.noPool > 0 ? (position.yesPool / (position.yesPool + position.noPool)) * 100 : 50) : (position.yesPool + position.noPool > 0 ? (position.noPool / (position.yesPool + position.noPool)) * 100 : 50)}
+                                color={position.rawSide === 'YES' ? 'green' : 'red'}
+                                className="mt-4"
+                              />
                             </div>
 
-                            <div className="text-left sm:text-right">
+                            <div className="text-left lg:text-right">
                               <p className="mono-value font-bold text-[var(--text-primary)]">${formatUsd(position.estimatedValue)}</p>
-                              <p className={`mono-value text-sm ${position.estimatedProfit >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>
+                              <p className={`mono-value text-sm ${position.estimatedProfit >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'}`}>
                                 {position.estimatedProfit >= 0 ? '+' : ''}${formatUsd(position.estimatedProfit)}
                               </p>
-                              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                Encerra em {new Date(position.closeTime).toLocaleDateString('pt-BR')}
-                              </p>
+                              <p className="mt-1 text-xs text-[var(--text-muted)]">Encerra em {new Date(position.closeTime).toLocaleDateString('pt-BR')}</p>
                             </div>
                           </div>
                         </div>
@@ -819,8 +863,32 @@ export const UserDashboard: React.FC = () => {
                 <section className="vp-card p-5">
                   <h3 className="mb-3 text-lg font-semibold text-[var(--text-primary)]">Saldo do Cofre</h3>
 
-                  <p className="mono-value text-3xl font-bold text-[var(--text-primary)]">${formatUsd(vaultData.availableBalance)}</p>
+                  <p className="mono-value text-3xl font-black text-[var(--text-primary)]">${formatUsd(vaultData.availableBalance)}</p>
                   <p className="mt-1 text-sm text-[var(--text-secondary)]">≈ {vaultData.availableBalance.toFixed(0)} USDT disponível</p>
+
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <div className="mb-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                        <span>Total depositado</span>
+                        <span className="mono-value text-white">${formatUsd(vaultData.totalDeposited)}</span>
+                      </div>
+                      <ProgressBar value={vaultData.totalDeposited > 0 ? 100 : 0} color="purple" />
+                    </div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                        <span>Em posições</span>
+                        <span className="mono-value text-white">${formatUsd(vaultData.inActivePositions)}</span>
+                      </div>
+                      <ProgressBar value={vaultData.totalDeposited > 0 ? (vaultData.inActivePositions / vaultData.totalDeposited) * 100 : 0} color="red" />
+                    </div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                        <span>Disponível</span>
+                        <span className="mono-value text-white">${formatUsd(vaultData.availableBalance)}</span>
+                      </div>
+                      <ProgressBar value={vaultData.totalDeposited > 0 ? (vaultData.availableBalance / vaultData.totalDeposited) * 100 : 0} color="green" />
+                    </div>
+                  </div>
 
                   <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
                     <div className="flex items-center justify-between">
@@ -867,25 +935,30 @@ export const UserDashboard: React.FC = () => {
                           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">● {dateLabel}</p>
                           <div className="space-y-2">
                             {items.map((item) => {
-                              const typeLabel =
+                              const activityMeta =
                                 item.type === 'CLAIM'
-                                  ? 'CLAIM'
+                                  ? { label: 'Saque', Icon: Send, positive: true }
                                   : item.type === 'DEPOSIT'
-                                    ? 'DEPOSIT'
+                                    ? { label: 'Depósito', Icon: Wallet, positive: true }
                                     : item.type === 'BET'
-                                      ? 'BET'
+                                      ? { label: 'Aposta', Icon: PiggyBank, positive: false }
                                       : item.type === 'WITHDRAWAL'
-                                        ? 'WITHDRAW'
-                                        : 'LOSS';
+                                        ? { label: 'Retirada', Icon: Send, positive: false }
+                                        : item.type === 'REFUND'
+                                          ? { label: 'Reembolso', Icon: Wallet, positive: true }
+                                          : { label: 'Perda', Icon: ArrowDownRight, positive: false };
+                              const { label: typeLabel, Icon, positive } = activityMeta;
 
-                              const positive = item.type === 'CLAIM' || item.type === 'DEPOSIT' || item.type === 'REFUND';
                               const amountColor = positive ? 'text-[#34d399]' : 'text-[#f87171]';
                               const prefix = positive ? '+' : '-';
 
                               return (
-                                <div key={item.id} className="text-xs text-[var(--text-secondary)]">
+                                <div key={item.id} className="rounded-[12px] border border-white/8 bg-white/4 p-3 text-xs text-[var(--text-secondary)]">
                                   <p>
-                                    <span className="mr-1 text-[var(--text-muted)]">{typeLabel}</span>
+                                    <span className="mr-2 inline-flex items-center gap-1 text-[var(--text-muted)]">
+                                      <Icon className="h-3.5 w-3.5" />
+                                      {typeLabel}
+                                    </span>
                                     <span className={`mono-value ${amountColor}`}>
                                       {prefix}${formatUsd(Math.abs(item.amount))}
                                     </span>{' '}
@@ -900,7 +973,7 @@ export const UserDashboard: React.FC = () => {
                                       <span>{item.label || 'Movimentação no cofre'}</span>
                                     )}
                                   </p>
-                                  <p className="mono-value text-[var(--text-muted)]">
+                                  <p className="mono-value mt-2 text-[var(--text-muted)]">
                                     {new Date(item.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                   </p>
                                 </div>

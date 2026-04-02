@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Trophy, Users, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Globe2, Scale, TrendingUp, Trophy, Users, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api-client';
 import { usePolymarketLeaderboard } from '../hooks/usePolymarket';
+import { EmptyState, ProgressBar } from '../components/ui/VoxPrimitives';
 
 type LeaderboardEntry = {
   id: string;
@@ -35,14 +37,6 @@ type MyLeaderboardData = {
   totalUsers: number;
 };
 
-const BADGES: Record<string, { icon: string; label: string; desc: string }> = {
-  early_adopter: { icon: 'EA', label: 'Early Adopter', desc: 'Entre os primeiros usuários' },
-  whale: { icon: 'WH', label: 'Baleia', desc: 'Volume > $10.000' },
-  prophet: { icon: 'PR', label: 'Profeta', desc: '70%+ acerto com 10+ previsões' },
-  on_fire: { icon: 'ST', label: 'Streak', desc: '5+ acertos seguidos' },
-  veteran: { icon: 'VT', label: 'Veterano', desc: '50+ previsões corretas' },
-};
-
 const PERIOD_OPTIONS = [
   { key: '7d', label: '7 dias' },
   { key: '30d', label: '30 dias' },
@@ -68,6 +62,7 @@ const formatUsd = (value: number, fractionDigits = 0) =>
 const getInitial = (username: string | null) => (username?.trim()?.[0] || '?').toUpperCase();
 
 export const LeaderboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const { isSignedIn } = useAuth();
   const [period, setPeriod] = useState<(typeof PERIOD_OPTIONS)[number]['key']>('all');
   const [category, setCategory] = useState<(typeof CATEGORY_OPTIONS)[number]['key']>('all');
@@ -115,45 +110,43 @@ export const LeaderboardPage: React.FC = () => {
       <Header />
 
       <main className="section-shell py-10">
-        <div className="mb-7 rounded-2xl border border-white/10 bg-[#1e1e30] p-6">
-          <p className="text-xs uppercase tracking-[0.12em] text-gray-500">Leaderboard</p>
-          <h1 className="mt-1 text-3xl font-bold text-white md:text-4xl">Melhores Previsores</h1>
-          <p className="mt-2 text-sm text-gray-400">Competição pública por consistência, lucro e taxa de acerto.</p>
+        <div className="vp-card mb-7 overflow-hidden p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.16),transparent_42%)] pointer-events-none" />
+          <div className="relative">
+            <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Leaderboard</p>
+            <h1 className="mt-1 text-3xl font-black text-white md:text-4xl">Melhores Previsores</h1>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">Competição pública por consistência, acerto, lucro e disciplina.</p>
 
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-white/10 bg-[#0f0f1a] p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">Previsores</p>
-              <p className="mt-1 flex items-center gap-2 text-2xl font-bold text-white">
-                <Users className="h-5 w-5 text-amber-400" />
-                {summary.totalPredictors}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#0f0f1a] p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">Volume Total</p>
-              <p className="mt-1 flex items-center gap-2 text-2xl font-bold text-white">
-                <Wallet className="h-5 w-5 text-amber-400" />${formatUsd(summary.totalVolume)}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#0f0f1a] p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">Acerto Médio</p>
-              <p className="mt-1 flex items-center gap-2 text-2xl font-bold text-white">
-                <BarChart3 className="h-5 w-5 text-amber-400" />
-                {(summary.averageWinRate * 100).toFixed(1)}%
-              </p>
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <article className="vp-card-soft p-5">
+                <Users className="h-6 w-6 text-[#fbbf24]" />
+                <p className="mt-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Previsores</p>
+                <p className="mono-value mt-2 text-[2rem] font-black text-white">{summary.totalPredictors}</p>
+              </article>
+              <article className="vp-card-soft p-5">
+                <Wallet className="h-6 w-6 text-[#34d399]" />
+                <p className="mt-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Volume Total</p>
+                <p className="mono-value mt-2 text-[2rem] font-black text-white">${formatUsd(summary.totalVolume)}</p>
+              </article>
+              <article className="vp-card-soft p-5">
+                <BarChart3 className="h-6 w-6 text-[#a78bfa]" />
+                <p className="mt-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Acerto Médio</p>
+                <p className="mono-value mt-2 text-[2rem] font-black text-white">{(summary.averageWinRate * 100).toFixed(1)}%</p>
+              </article>
             </div>
           </div>
         </div>
 
-        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-[#1e1e30] p-4">
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-[16px] border border-white/10 bg-white/4 p-4">
           <div className="flex flex-wrap gap-2">
             {PERIOD_OPTIONS.map((option) => (
               <button
                 key={option.key}
                 onClick={() => setPeriod(option.key)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                  period === option.key ? 'bg-amber-500 text-black' : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  period === option.key
+                    ? 'bg-[linear-gradient(135deg,rgba(124,58,237,0.28),rgba(139,92,246,0.16))] text-white shadow-[0_0_20px_rgba(124,58,237,0.18)]'
+                    : 'border border-white/10 bg-white/4 text-[var(--text-secondary)] hover:text-white'
                 }`}
               >
                 {option.label}
@@ -164,7 +157,7 @@ export const LeaderboardPage: React.FC = () => {
           <select
             value={category}
             onChange={(event) => setCategory(event.target.value as typeof category)}
-            className="ml-auto rounded-lg border border-white/10 bg-[#0f0f1a] px-3 py-2 text-sm text-gray-300 outline-none focus:border-amber-500/40"
+            className="vp-input ml-auto h-10 min-w-[200px] px-3 text-sm"
           >
             {CATEGORY_OPTIONS.map((option) => (
               <option key={option.key} value={option.key}>
@@ -181,132 +174,115 @@ export const LeaderboardPage: React.FC = () => {
             ))}
           </div>
         ) : leaderboardQuery.error ? (
-          <div className="rounded-xl border border-white/10 bg-[#1e1e30] p-8 text-center">
+          <div className="vp-card p-8 text-center">
             <p className="text-lg font-semibold text-white">Erro ao carregar ranking</p>
-            <p className="mt-1 text-sm text-gray-400">
-              {(leaderboardQuery.error as Error).message || 'Tente novamente em instantes.'}
-            </p>
+            <p className="mt-1 text-sm text-gray-400">{(leaderboardQuery.error as Error).message || 'Tente novamente em instantes.'}</p>
           </div>
         ) : leaderboard.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-[#1e1e30] p-12 text-center">
-            <Trophy className="mx-auto h-8 w-8 text-amber-400" />
-            <p className="mt-3 text-gray-400">Ainda não há previsores suficientes para montar o ranking.</p>
-          </div>
+          <EmptyState
+            icon={Trophy}
+            title="O ranking ainda está em formação"
+            description="Faça sua primeira aposta para entrar na disputa. Assim que houver previsores suficientes, a tabela passa a refletir desempenho real."
+            cta={
+              <button onClick={() => navigate('/dashboard')} className="vp-btn-primary inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold">
+                Explorar Mercados
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            }
+          />
         ) : (
           <>
             <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="flex flex-col items-center pt-4 md:pt-8">
-                <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border-2 border-gray-400 bg-gray-400/20 text-2xl">
-                  {getInitial(top3[1]?.username ?? null)}
-                </div>
-                <div className="w-full rounded-xl border border-gray-400/30 bg-[#1e1e30] p-3 text-center">
-                  <p className="mb-1 text-xs text-gray-400">2º lugar</p>
-                  <p className="font-bold text-white">{top3[1]?.username ?? 'Anônimo'}</p>
-                  <p className={`${(top3[1]?.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'} text-sm`}>
-                    {top3[1]?.profitFormatted ?? '$0'}
-                  </p>
-                  <p className="text-xs text-gray-400">{top3[1]?.winRateFormatted ?? '0%'} acerto</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <div className="mb-2 flex h-20 w-20 items-center justify-center rounded-full border-2 border-amber-500 bg-amber-500/20 text-3xl">
-                  {getInitial(top3[0]?.username ?? null)}
-                </div>
-                <div className="w-full rounded-xl border border-amber-500/30 bg-[#1e1e30] p-3 text-center">
-                  <p className="mb-1 text-xs text-amber-400">1º lugar</p>
-                  <p className="text-lg font-bold text-white">{top3[0]?.username ?? 'Anônimo'}</p>
-                  <p className={`${(top3[0]?.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {top3[0]?.profitFormatted ?? '$0'}
-                  </p>
-                  <p className="text-xs text-gray-400">{top3[0]?.winRateFormatted ?? '0%'} acerto</p>
-                  {(top3[0]?.streak || 0) > 2 && <p className="text-xs text-orange-400">Streak {top3[0]?.streak}</p>}
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center pt-4 md:pt-12">
-                <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-amber-700 bg-amber-700/20 text-xl">
-                  {getInitial(top3[2]?.username ?? null)}
-                </div>
-                <div className="w-full rounded-xl border border-amber-700/30 bg-[#1e1e30] p-3 text-center">
-                  <p className="mb-1 text-xs text-amber-700">3º lugar</p>
-                  <p className="font-bold text-white">{top3[2]?.username ?? 'Anônimo'}</p>
-                  <p className={`${(top3[2]?.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'} text-sm`}>
-                    {top3[2]?.profitFormatted ?? '$0'}
-                  </p>
-                  <p className="text-xs text-gray-400">{top3[2]?.winRateFormatted ?? '0%'} acerto</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {rest.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center gap-4 rounded-xl border border-white/5 bg-[#1e1e30] px-4 py-3 transition-colors hover:border-white/10"
-                >
-                  <div className="w-8 text-center">
-                    <span className="font-mono text-sm text-gray-500">#{user.position}</span>
-                    {user.rankChange !== 0 && (
-                      <div className={`text-xs ${user.rankChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {user.rankChange > 0 ? `↑${user.rankChange}` : `↓${Math.abs(user.rankChange)}`}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-purple-500/30 bg-purple-500/20 text-sm font-bold text-purple-400">
-                    {getInitial(user.username)}
-                  </div>
-
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-white">
-                      {user.username ?? 'Anônimo'}
-                      {user.streak >= 3 && <span className="ml-1 text-orange-400">ST</span>}
-                    </p>
-                    <div className="mt-0.5 flex gap-2">
-                      {user.badges.map((badge) => (
-                        <span key={`${user.id}-${badge}`} title={BADGES[badge]?.desc || badge} className="text-xs text-gray-500">
-                          {BADGES[badge]?.icon || 'VT'}
-                        </span>
-                      ))}
+              {top3.map((user, index) => {
+                if (!user) return null;
+                const accent = index === 0 ? '#fbbf24' : index === 1 ? '#cbd5e1' : '#d97706';
+                const rankLabel = index === 0 ? 'Top 1' : index === 1 ? 'Top 2' : 'Top 3';
+                return (
+                  <div key={user.id} className={`vp-card ${index === 0 ? 'md:-translate-y-2' : ''} p-5 text-center`}>
+                    <div className="mono-value text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: accent }}>
+                      {rankLabel}
                     </div>
+                    <div
+                      className="mx-auto mt-3 flex h-16 w-16 items-center justify-center rounded-full border text-xl font-black text-white"
+                      style={{ borderColor: accent, background: `${accent}22` }}
+                    >
+                      {getInitial(user.username)}
+                    </div>
+                    <p className="mt-4 text-lg font-bold text-white">{user.username ?? 'Anônimo'}</p>
+                    <p className={`mt-1 text-sm font-semibold ${user.totalProfit >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'}`}>{user.profitFormatted}</p>
+                    <div className="mt-4">
+                      <div className="mb-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                        <span>Acerto</span>
+                        <span>{user.winRateFormatted}</span>
+                      </div>
+                      <ProgressBar value={user.winRate * 100} color={user.winRate >= 0.5 ? 'green' : 'red'} animated />
+                    </div>
+                    <p className="mt-3 text-xs text-[var(--text-muted)]">{user.totalPredictions} apostas</p>
                   </div>
-
-                  <div className="text-right">
-                    <p className={`text-sm font-bold ${user.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {user.profitFormatted}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {user.winRateFormatted} • {user.totalPredictions} previsões
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            <section className="vp-card overflow-hidden p-0">
+              <div className="grid grid-cols-[72px_minmax(0,1.4fr)_110px_120px_130px_130px] gap-3 border-b border-white/8 bg-white/4 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                <span>Rank</span>
+                <span>Usuário</span>
+                <span>Apostas</span>
+                <span>Acerto %</span>
+                <span>Lucro</span>
+                <span>Volume</span>
+              </div>
+
+              <div className="divide-y divide-white/8">
+                {rest.map((user) => (
+                  <div
+                    key={user.id}
+                    className="grid grid-cols-[72px_minmax(0,1.4fr)_110px_120px_130px_130px] items-center gap-3 px-4 py-4 text-sm transition-colors hover:bg-white/4"
+                  >
+                    <div>
+                      <p className="mono-value text-white">#{user.position}</p>
+                      {user.rankChange !== 0 ? (
+                        <p className={`text-xs ${user.rankChange > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'}`}>
+                          {user.rankChange > 0 ? `↑${user.rankChange}` : `↓${Math.abs(user.rankChange)}`}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(139,92,246,0.28)] bg-[rgba(124,58,237,0.16)] font-bold text-white">
+                        {getInitial(user.username)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-white">{user.username ?? 'Anônimo'}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Streak {user.streak}</p>
+                      </div>
+                    </div>
+                    <span className="mono-value text-[var(--text-secondary)]">{user.totalPredictions}</span>
+                    <div>
+                      <p className="mono-value text-white">{user.winRateFormatted}</p>
+                      <ProgressBar value={user.winRate * 100} color={user.winRate >= 0.5 ? 'green' : 'red'} className="mt-2" />
+                    </div>
+                    <span className={`mono-value font-semibold ${user.totalProfit >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'}`}>{user.profitFormatted}</span>
+                    <span className="mono-value text-[var(--text-secondary)]">${formatUsd(user.totalVolume)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {globalLeaderboard.length > 0 ? (
-              <section className="mt-8 rounded-xl border border-white/10 bg-[#1e1e30] p-5">
+              <section className="vp-card mt-8 p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold text-white">Top Traders Globais</h2>
                     <p className="text-xs text-gray-500">Polymarket</p>
                   </div>
-                  <a
-                    href="https://polymarket.com/leaderboard"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-gray-500 transition-colors hover:text-gray-300"
-                  >
+                  <a href="https://polymarket.com/leaderboard" target="_blank" rel="noreferrer" className="text-xs text-gray-500 transition-colors hover:text-gray-300">
                     Ver ranking global
                   </a>
                 </div>
 
                 <div className="space-y-2">
                   {globalLeaderboard.map((trader, index) => (
-                    <div
-                      key={trader.proxyWalletAddress}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-[#0f0f1a] px-4 py-3"
-                    >
+                    <div key={trader.proxyWalletAddress} className="flex items-center justify-between rounded-xl border border-white/5 bg-[#0f0f1a] px-4 py-3">
                       <div className="flex items-center gap-3">
                         <span className="w-6 text-sm text-gray-500">#{index + 1}</span>
                         <span className="font-mono text-sm text-white">
@@ -315,12 +291,8 @@ export const LeaderboardPage: React.FC = () => {
                       </div>
 
                       <div className="text-right">
-                        <p className={`text-sm font-bold ${trader.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          ${formatUsd(trader.pnl, 0)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {(trader.percentPositive * 100).toFixed(0)}% acerto
-                        </p>
+                        <p className={`text-sm font-bold ${trader.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>${formatUsd(trader.pnl, 0)}</p>
+                        <p className="text-xs text-gray-500">{(trader.percentPositive * 100).toFixed(0)}% acerto</p>
                       </div>
                     </div>
                   ))}
@@ -331,30 +303,30 @@ export const LeaderboardPage: React.FC = () => {
         )}
       </main>
 
-      {isSignedIn && myRankQuery.data && (
+      {isSignedIn && myRankQuery.data ? (
         <div className="fixed bottom-20 left-0 right-0 z-40 p-4 md:bottom-4">
-          <div className="mx-auto flex max-w-4xl items-center justify-between rounded-xl border border-purple-500/30 bg-purple-900/50 px-4 py-3 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-4xl items-center justify-between rounded-[16px] border border-[rgba(124,58,237,0.32)] bg-[rgba(47,27,87,0.82)] px-4 py-3 backdrop-blur-sm">
             <div>
               <p className="text-xs text-purple-300">Sua posição</p>
-              <p className="text-lg font-bold text-white">#{myRankQuery.data.rank ?? '—'}</p>
+              <p className="text-lg font-black text-white">#{myRankQuery.data.rank ?? '—'}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-400">Win rate</p>
               <p className="font-medium text-white">{((myRankQuery.data.winRate || 0) * 100).toFixed(1)}%</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-400">Lucro total</p>
+              <p className="text-xs text-gray-400">Lucro</p>
               <p className={`font-medium ${(myRankQuery.data.totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {(myRankQuery.data.totalProfit || 0) >= 0 ? '+' : ''}${formatUsd(myRankQuery.data.totalProfit || 0)}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-400">De</p>
+              <p className="text-xs text-gray-400">Universo</p>
               <p className="font-medium text-white">{myRankQuery.data.totalUsers || 0}</p>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <Footer />
       <MobileBottomNav />

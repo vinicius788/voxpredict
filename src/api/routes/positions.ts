@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { authenticate, type AuthenticatedRequest } from '../middleware/auth';
 import { validateBetTx, validateClaimTx } from '../services/tx-validator';
+import { checkAntiManipulation, logManipulationAttempt } from '../services/anti-manipulation';
+import { eventBus } from '../services/event-bus';
 
 const router = express.Router();
 
@@ -250,6 +252,22 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
     const amountAsString = typeof payload.amount === 'number' ? payload.amount.toString() : payload.amount;
     const amount = new Prisma.Decimal(amountAsString);
     const tokenSymbol = payload.token.toUpperCase();
+
+    // Anti-manipulation check
+    const manipCheck = await checkAntiManipulation({
+      userId,
+      marketId: payload.marketId,
+      outcome: payload.side,
+      direction: 'BUY',
+      amount: Number(amountAsString),
+    });
+    if (!manipCheck.allowed) {
+      await logManipulationAttempt(
+        { userId, marketId: payload.marketId, outcome: payload.side, direction: 'BUY', amount: Number(amountAsString) },
+        manipCheck,
+      );
+      return res.status(422).json({ success: false, error: manipCheck.reason, code: manipCheck.code });
+    }
     const tokenDecimals = getTokenDecimals(tokenSymbol);
 
     const market = await prisma.market.findUnique({
@@ -363,6 +381,15 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
           txHash: effectiveTxHash as string,
         },
       }),
+      prisma.activity.create({
+        data: {
+          userId,
+          marketId: payload.marketId,
+          type: 'BET',
+          side: payload.side,
+          amount,
+        },
+      }),
     ]);
 
     const updatedMarket = await prisma.market.findUnique({
@@ -386,6 +413,16 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response) 
         },
       });
     }
+
+    // Fire-and-forget: notificações, atividade, badges
+    eventBus.emit('trade.executed', {
+      userId,
+      marketId: payload.marketId,
+      outcome: payload.side,
+      direction: 'BUY',
+      amount: Number(amountAsString),
+      txHash: effectiveTxHash as string,
+    });
 
     return res.status(201).json({
       success: true,

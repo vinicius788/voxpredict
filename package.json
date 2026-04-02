@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:api": "tsx src/api/server.ts",
+    "dev:api": "node --import tsx/esm src/api/server.ts",
+    "dev:full": "sh -c 'trap \"kill 0\" EXIT INT TERM; npm run dev:api & npm run dev'",
     "start": "node --import tsx/esm src/api/server.ts",
     "start:prod": "NODE_ENV=production node --import tsx/esm src/api/server.ts",
     "start:render": "npm run start:prod",
@@ -25,7 +26,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
-    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed": "node --import tsx/esm prisma/seed.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
@@ -36,6 +37,7 @@
     "@openzeppelin/contracts": "^5.6.1",
     "@prisma/client": "^5.22.0",
     "@rainbow-me/rainbowkit": "^2.2.10",
+    "@reown/appkit-ui": "^1.8.19",
     "@supabase/supabase-js": "^2.98.0",
     "@tanstack/react-query": "^5.90.21",
     "@transak/transak-sdk": "^4.0.2",
@@ -64,7 +66,7 @@
     "zod": "^4.3.6"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node --import tsx/esm prisma/seed.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.5",
