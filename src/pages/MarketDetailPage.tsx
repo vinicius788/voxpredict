@@ -7,7 +7,7 @@ import {
   Copy,
   DollarSign,
   ExternalLink,
-  Lock,
+  Landmark,
   ShieldCheck,
   Users,
 } from 'lucide-react';
@@ -17,7 +17,6 @@ import {
   BarChart,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ReferenceLine,
   ResponsiveContainer,
@@ -37,6 +36,7 @@ import { ShareMarketButton } from '../components/ShareMarketButton';
 import { Market } from '../types';
 import { useMarket, useMarketHistory } from '../hooks/useMarkets';
 import { usePolymarketReference } from '../hooks/usePolymarket';
+import { CategoryBadge, CountdownTimer, StatusBadge } from '../components/ui/VoxPrimitives';
 
 type HistoryPeriod = '24h' | '7d' | '30d' | 'all';
 
@@ -55,6 +55,7 @@ const formatCountdown = (endDate: string) => {
 };
 
 const formatCompactCurrency = (value: number) => {
+  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}k`;
   return `$${value.toFixed(0)}`;
@@ -72,8 +73,7 @@ const upsertMetaTag = (attribute: 'property' | 'name', key: string, value: strin
   tag.setAttribute('content', value);
 };
 
-export const MarketDetailPage: React.FC<{
-}> = () => {
+export const MarketDetailPage: React.FC = () => {
   const { marketAddress } = useParams<{ marketAddress: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,10 +96,8 @@ export const MarketDetailPage: React.FC<{
     if (!market) return;
 
     const tick = () => setCountdown(formatCountdown(market.endDate));
-
     tick();
     const interval = setInterval(tick, 60_000);
-
     return () => clearInterval(interval);
   }, [market]);
 
@@ -238,13 +236,13 @@ export const MarketDetailPage: React.FC<{
         range,
         simVolume: Number(simVolume.toFixed(2)),
         naoVolume: Number(naoVolume.toFixed(2)),
+        total: Number(baseVolume.toFixed(2)),
       };
     });
   }, [market]);
 
   const formatXAxis = (value: number) => {
     const date = new Date(value);
-
     if (historyPeriod === '24h') return format(date, 'HH:mm');
     if (historyPeriod === '7d') return format(date, 'dd/MM HH:mm');
     return format(date, 'dd/MM');
@@ -252,7 +250,6 @@ export const MarketDetailPage: React.FC<{
 
   const copyAddress = async () => {
     if (!hasOnChainContract) return;
-
     await navigator.clipboard.writeText(marketContractAddress);
     toast.success('Endereço do contrato copiado.');
   };
@@ -265,10 +262,7 @@ export const MarketDetailPage: React.FC<{
           <div className="vp-card p-10 text-center">
             <h2 className="text-xl font-semibold text-[var(--text-primary)]">Mercado não encontrado</h2>
             <p className="mt-2 text-sm text-[var(--text-secondary)]">O endereço informado é inválido.</p>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="vp-btn-primary mt-5 px-5 py-2.5 text-sm font-semibold"
-            >
+            <button onClick={() => navigate('/dashboard')} className="vp-btn-primary mt-5 px-5 py-2.5 text-sm font-semibold">
               Voltar para mercados
             </button>
           </div>
@@ -283,11 +277,11 @@ export const MarketDetailPage: React.FC<{
     <div className="app-shell pb-16 lg:pb-0">
       <Header />
 
-      <main className="section-shell py-8">
-        <div className="mb-6 flex items-center justify-between gap-3">
+      <main className="section-shell market-detail-page py-8">
+        <div className="market-breadcrumb mb-6 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar para mercados
@@ -297,24 +291,21 @@ export const MarketDetailPage: React.FC<{
             {market ? (
               <ShareMarketButton market={market} />
             ) : (
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] opacity-60"
-              >
+              <button type="button" disabled className="rounded-full border border-white/10 bg-white/4 px-4 py-2 text-sm text-[var(--text-secondary)] opacity-60">
                 Compartilhar
               </button>
             )}
-            {explorerUrl && (
+            {explorerUrl ? (
               <a
                 href={explorerUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:text-white"
               >
-                <ExternalLink className="h-4 w-4" /> Verificar contrato
+                <ExternalLink className="h-4 w-4" />
+                Polygonscan
               </a>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -331,341 +322,285 @@ export const MarketDetailPage: React.FC<{
         ) : !market ? (
           <div className="vp-card p-10 text-center">
             <h2 className="text-xl font-semibold text-[var(--text-primary)]">Mercado não encontrado</h2>
-            <p className="mt-2 text-sm text-[var(--text-secondary)]">
-              Não foi possível carregar os dados do mercado solicitado.
-            </p>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">Não foi possível carregar os dados do mercado solicitado.</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            <section className="vp-card p-6">
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span className="rounded-[999px] border border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.2)] px-2.5 py-1 text-xs font-semibold text-[#c4b5fd]">
-                  {market.category}
-                </span>
-                <span
-                  className={`rounded-[999px] border px-2.5 py-1 text-xs font-semibold ${
-                    isActive
-                      ? 'border-[rgba(16,185,129,0.45)] bg-[rgba(16,185,129,0.18)] text-[#6ee7b7]'
-                      : 'border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.18)] text-[#fcd34d]'
-                  }`}
+          <div className="market-layout">
+            <div className="market-content">
+              <section className="market-header-block vp-card overflow-hidden p-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <CategoryBadge category={market.category} />
+                <StatusBadge status={isActive ? 'ativo' : 'encerrado'} />
+                <CountdownTimer endDate={market.endDate} />
+              </div>
+
+              <div className="mt-5 max-w-4xl">
+                <h1 className="text-[clamp(2rem,4vw,3.5rem)] font-black leading-tight text-[var(--text-primary)]">
+                  {market.title}
+                </h1>
+                <p className={`mt-4 text-[15px] leading-7 text-[var(--text-secondary)] ${showFullDescription ? '' : 'line-clamp-3'}`}>
+                  {market.description}
+                </p>
+                <button
+                  onClick={() => setShowFullDescription((prev) => !prev)}
+                  className="mt-3 text-sm font-semibold text-[var(--action)] transition-colors hover:text-[var(--text-primary)]"
                 >
-                  {isActive ? 'Ativo' : 'Finalizado'}
-                </span>
+                  {showFullDescription ? 'Ver menos' : 'Ver mais'}
+                </button>
               </div>
 
-              <h1 className="text-3xl font-bold text-[var(--text-primary)] md:text-4xl">{market.title}</h1>
-
-              <p className={`mt-4 text-sm leading-relaxed text-[var(--text-secondary)] ${showFullDescription ? '' : 'line-clamp-3'}`}>
-                {market.description}
-              </p>
-              <button
-                onClick={() => setShowFullDescription((prev) => !prev)}
-                className="mt-2 text-sm font-medium text-[#a78bfa] transition-colors hover:text-[#c4b5fd]"
-              >
-                {showFullDescription ? 'Ver menos' : 'Ver mais'}
-              </button>
-
-              <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                  <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                    <DollarSign className="h-3.5 w-3.5" /> Volume
+              <div className="market-stats-grid mt-6">
+                <div className="vp-card-soft p-4">
+                  <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <DollarSign className="h-4 w-4 text-[var(--text-secondary)]" />
+                    Volume
                   </p>
-                  <p className="mono-value text-xl font-bold text-[var(--text-primary)]">
-                    ${market.totalVolume.toLocaleString('pt-BR')}
-                  </p>
+                  <p className="mono-value mt-3 text-[2rem] font-black text-[var(--text-primary)]">{formatCompactCurrency(market.totalVolume)}</p>
+                  <p className="mt-2 text-xs text-[var(--text-secondary)]">Mercado com liquidez ativa</p>
                 </div>
 
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                  <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                    <Users className="h-3.5 w-3.5" /> Participantes
+                <div className="vp-card-soft p-4">
+                  <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <Users className="h-4 w-4 text-[var(--text-secondary)]" />
+                    Participantes
                   </p>
-                  <p className="mono-value text-xl font-bold text-[var(--text-primary)]">{market.totalBettors}</p>
+                  <p className="mono-value mt-3 text-[2rem] font-black text-[var(--text-primary)]">{market.totalBettors}</p>
+                  <p className="mt-2 text-xs text-[var(--text-secondary)]">Usuários posicionados no mercado</p>
                 </div>
 
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-4">
-                  <p className="mb-1 inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                    <Clock3 className="h-3.5 w-3.5" /> Encerra em
+                <div className="vp-card-soft p-4">
+                  <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <Clock3 className="h-4 w-4 text-[var(--text-secondary)]" />
+                    Encerra em
                   </p>
-                  <p className="mono-value text-xl font-bold text-[var(--text-primary)]">{countdown}</p>
+                  <p className="mono-value mt-3 text-[2rem] font-black text-[var(--text-primary)]">{countdown}</p>
+                  <p className="mt-2 text-xs text-[var(--text-secondary)]">Contagem regressiva dinâmica</p>
                 </div>
               </div>
-            </section>
-
-            <div className="lg:hidden">
-              <PredictionInterface market={market} />
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="space-y-6 lg:col-span-2">
-              <section className="vp-card p-5">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Histórico de Probabilidades</h2>
-                  <div className="flex items-center gap-2">
-                    {(['24h', '7d', '30d', 'all'] as HistoryPeriod[]).map((period) => (
-                      <button
-                        key={period}
-                        onClick={() => setHistoryPeriod(period)}
-                        className={`rounded-[8px] px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                          historyPeriod === period
-                            ? 'bg-[rgba(124,58,237,0.3)] text-[var(--text-primary)]'
-                            : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        {period === 'all' ? 'Tudo' : period}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="h-[280px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={probabilityChartData} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="simFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="rgba(16,185,129,0.45)" />
-                          <stop offset="95%" stopColor="rgba(16,185,129,0.05)" />
-                        </linearGradient>
-                        <linearGradient id="naoFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="rgba(239,68,68,0.45)" />
-                          <stop offset="95%" stopColor="rgba(239,68,68,0.05)" />
-                        </linearGradient>
-                      </defs>
-
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                      <ReferenceLine y={50} stroke="rgba(148,163,184,0.7)" strokeDasharray="5 5" />
-                      <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={formatXAxis}
-                        tick={{ fill: '#94A3B8', fontSize: 11 }}
-                        stroke="rgba(148,163,184,0.28)"
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        tickFormatter={(value) => `${value}%`}
-                        tick={{ fill: '#94A3B8', fontSize: 11 }}
-                        stroke="rgba(148,163,184,0.28)"
-                      />
-
-                      <Tooltip
-                        content={({ active, payload }: any) => {
-                          if (!active || !payload?.length) return null;
-                          const point = payload[0].payload;
-
-                          return (
-                            <div className="rounded-[10px] border border-[var(--border)] bg-[var(--brand-800)] p-3 text-xs text-[var(--text-primary)] shadow-lg">
-                              <p className="mb-1 text-[var(--text-secondary)]">{format(new Date(point.timestamp), 'dd/MM/yyyy HH:mm')}</p>
-                              {typeof point.simProbability === 'number' ? (
-                                <p className="mono-value text-[#34d399]">SIM: {point.simProbability.toFixed(2)}%</p>
-                              ) : null}
-                              {typeof point.naoProbability === 'number' ? (
-                                <p className="mono-value text-[#f87171]">NÃO: {point.naoProbability.toFixed(2)}%</p>
-                              ) : null}
-                              {typeof point.globalProbability === 'number' ? (
-                                <p className="mono-value text-[#94a3b8]">Global: {point.globalProbability.toFixed(2)}%</p>
-                              ) : null}
-                              {typeof point.volume === 'number' ? (
-                                <p className="mono-value mt-1 text-[var(--text-secondary)]">
-                                  Vol: {formatCompactCurrency(point.volume)}
-                                </p>
-                              ) : null}
-                            </div>
-                          );
-                        }}
-                      />
-
-                      <Area
-                        type="monotone"
-                        dataKey="simProbability"
-                        stroke="#10B981"
-                        fill="url(#simFill)"
-                        strokeWidth={2.2}
-                        connectNulls
-                        isAnimationActive
-                        animationDuration={800}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="naoProbability"
-                        stroke="#EF4444"
-                        fill="url(#naoFill)"
-                        strokeWidth={2.2}
-                        connectNulls
-                        isAnimationActive
-                        animationDuration={800}
-                      />
-                      {polymarketReference?.history?.length ? (
-                        <Line
-                          type="monotone"
-                          dataKey="globalProbability"
-                          stroke="#94A3B8"
-                          strokeDasharray="5 5"
-                          strokeWidth={1.5}
-                          dot={false}
-                          connectNulls
-                          name="Global (Polymarket)"
-                        />
-                      ) : null}
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
               </section>
 
-              <section className="vp-card p-5">
-                <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Distribuição de Apostas por Faixa</h2>
-                <div className="h-[250px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={distributionData} layout="vertical" margin={{ top: 6, right: 10, left: 18, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                      <XAxis
-                        type="number"
-                        tickFormatter={(value) => formatCompactCurrency(value)}
-                        tick={{ fill: '#94A3B8', fontSize: 11 }}
-                        stroke="rgba(148,163,184,0.28)"
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="range"
-                        tick={{ fill: '#94A3B8', fontSize: 11 }}
-                        stroke="rgba(148,163,184,0.28)"
-                        width={66}
-                      />
-                      <Tooltip
-                        content={({ active, payload, label }: any) => {
-                          if (!active || !payload?.length) return null;
-
-                          return (
-                            <div className="rounded-[10px] border border-[var(--border)] bg-[var(--brand-800)] p-3 text-xs text-[var(--text-primary)] shadow-lg">
-                              <p className="mb-1 text-[var(--text-secondary)]">Faixa {label}</p>
-                              <p className="mono-value text-[#34d399]">SIM: {formatCompactCurrency(payload[0].value)}</p>
-                              <p className="mono-value text-[#f87171]">NÃO: {formatCompactCurrency(payload[1].value)}</p>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="simVolume" fill="#10B981" radius={[0, 5, 5, 0]} name="SIM" />
-                      <Bar dataKey="naoVolume" fill="#EF4444" radius={[0, 5, 5, 0]} name="NÃO" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
-              </div>
-
-              <aside className="space-y-5">
-                <div className="hidden lg:block">
-                  <PredictionInterface market={market} />
-                </div>
-              <section className="vp-card p-5">
-                <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Informações do Contrato</h2>
-
-                <div className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3">
-                  <p className="mb-1 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Endereço</p>
-                  <p className="mono-value break-all text-xs text-[var(--text-primary)]">
-                    {hasOnChainContract ? marketContractAddress : 'Mercado de demonstração'}
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    {hasOnChainContract && (
-                      <button
-                        onClick={copyAddress}
-                        className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-                      >
-                        <Copy className="h-3.5 w-3.5" /> Copiar
-                      </button>
-                    )}
-                    {explorerUrl && (
-                      <a
-                        href={explorerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" /> Verificar contrato
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-[10px] border border-[rgba(124,58,237,0.35)] bg-[rgba(124,58,237,0.12)] p-3">
-                  <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                    <Lock className="h-4 w-4 text-[#a78bfa]" /> Mercado Descentralizado
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                    Regras e liquidação executadas por contrato inteligente, sem custódia central da plataforma.
-                  </p>
-                </div>
-
-                <div className="mt-3 rounded-[999px] border border-[rgba(167,139,250,0.45)] bg-[rgba(124,58,237,0.14)] px-3 py-1.5 text-xs text-[var(--text-primary)]">
-                  Powered by Polygon
-                </div>
-              </section>
-
-              <PolymarketReference marketId={market.id} />
-
-              {polymarketReference?.comments?.length ? (
-                <section className="vp-card p-5">
-                  <div className="mb-4 flex items-center justify-between gap-3">
+              <section className="market-section vp-card p-5">
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold text-[var(--text-primary)]">Opinião Global</h2>
-                      <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">via Polymarket</p>
+                      <h2 className="text-xl font-bold text-[var(--text-primary)]">Histórico de Probabilidades</h2>
+                      <p className="mt-1 text-sm text-[var(--text-secondary)]">Mercado local em destaque com referência global em linha tracejada.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(['24h', '7d', '30d', 'all'] as HistoryPeriod[]).map((period) => (
+                        <button
+                          key={period}
+                          onClick={() => setHistoryPeriod(period)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            historyPeriod === period
+                              ? 'border border-[var(--border-strong)] bg-[rgba(255,255,255,0.05)] text-[var(--text-primary)]'
+                              : 'border border-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {period === 'all' ? 'Tudo' : period}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {polymarketReference.comments.map((comment) => (
-                      <article
-                        key={comment.id}
-                        className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-3"
-                      >
-                        <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{comment.content}</p>
-                        <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--text-muted)]">
-                          <span>{comment.userName || 'Trader global'}</span>
-                          <span>
-                            {formatDistanceToNow(new Date(comment.createdAt), {
-                              addSuffix: true,
-                              locale: ptBR,
-                            })}
-                          </span>
-                        </div>
-                      </article>
-                    ))}
+                  <div className="mb-3 flex flex-wrap items-center gap-4 text-xs">
+                    <span className="inline-flex items-center gap-2 text-[#86efac]"><span className="h-2.5 w-2.5 rounded-full bg-[#22c55e]" /> SIM</span>
+                    <span className="inline-flex items-center gap-2 text-[#fca5a5]"><span className="h-2.5 w-2.5 rounded-full bg-[#ef4444]" /> NÃO</span>
+                    {polymarketReference?.history?.length ? (
+                      <span className="inline-flex items-center gap-2 text-[#cbd5e1]"><span className="h-[2px] w-5 border-t border-dashed border-[#94a3b8]" /> Global Polymarket</span>
+                    ) : null}
                   </div>
+
+                  <div className="h-[320px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={probabilityChartData} margin={{ top: 8, right: 10, left: -16, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="simFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="rgba(16,185,129,0.45)" />
+                            <stop offset="95%" stopColor="rgba(16,185,129,0.04)" />
+                          </linearGradient>
+                          <linearGradient id="naoFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="rgba(239,68,68,0.4)" />
+                            <stop offset="95%" stopColor="rgba(239,68,68,0.04)" />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                        <ReferenceLine y={50} stroke="rgba(148,163,184,0.7)" strokeDasharray="5 5" />
+                        <XAxis dataKey="timestamp" tickFormatter={formatXAxis} tick={{ fill: '#94A3B8', fontSize: 11 }} stroke="rgba(148,163,184,0.28)" />
+                        <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} tick={{ fill: '#94A3B8', fontSize: 11 }} stroke="rgba(148,163,184,0.28)" />
+                        <Tooltip
+                          content={({ active, payload }: any) => {
+                            if (!active || !payload?.length) return null;
+                            const point = payload[0].payload;
+
+                            return (
+                              <div className="rounded-[14px] border border-white/10 bg-[rgba(13,11,26,0.95)] p-3 text-xs text-white shadow-xl">
+                                <p className="mb-2 text-[var(--text-secondary)]">{format(new Date(point.timestamp), 'dd/MM/yyyy HH:mm')}</p>
+                                {typeof point.simProbability === 'number' ? <p className="mono-value text-[#86efac]">SIM: {point.simProbability.toFixed(2)}%</p> : null}
+                                {typeof point.naoProbability === 'number' ? <p className="mono-value text-[#fca5a5]">NÃO: {point.naoProbability.toFixed(2)}%</p> : null}
+                                {typeof point.globalProbability === 'number' ? <p className="mono-value text-[#cbd5e1]">Global: {point.globalProbability.toFixed(2)}%</p> : null}
+                                {typeof point.volume === 'number' ? <p className="mono-value mt-2 text-[var(--text-secondary)]">Vol: {formatCompactCurrency(point.volume)}</p> : null}
+                              </div>
+                            );
+                          }}
+                        />
+                        <Area type="monotone" dataKey="simProbability" stroke="#10B981" fill="url(#simFill)" strokeWidth={2.3} connectNulls isAnimationActive animationDuration={800} />
+                        <Area type="monotone" dataKey="naoProbability" stroke="#EF4444" fill="url(#naoFill)" strokeWidth={2.3} connectNulls isAnimationActive animationDuration={800} />
+                        {polymarketReference?.history?.length ? (
+                          <Line type="monotone" dataKey="globalProbability" stroke="#94A3B8" strokeDasharray="5 5" strokeWidth={1.6} dot={false} connectNulls />
+                        ) : null}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+              </section>
+
+              <section className="market-section vp-card p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-[var(--text-primary)]">Distribuição de Apostas</h2>
+                      <p className="mt-1 text-sm text-[var(--text-secondary)]">Volume por faixa com total agregado.</p>
+                    </div>
+                  </div>
+                  <div className="h-[240px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={distributionData} layout="vertical" margin={{ top: 6, right: 12, left: 18, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                        <XAxis type="number" tickFormatter={(value) => formatCompactCurrency(value)} tick={{ fill: '#94A3B8', fontSize: 11 }} stroke="rgba(148,163,184,0.28)" />
+                        <YAxis type="category" dataKey="range" tick={{ fill: '#94A3B8', fontSize: 11 }} stroke="rgba(148,163,184,0.28)" width={70} />
+                        <Tooltip
+                          content={({ active, payload, label }: any) => {
+                            if (!active || !payload?.length) return null;
+                            const point = payload[0].payload;
+
+                            return (
+                              <div className="rounded-[14px] border border-white/10 bg-[rgba(13,11,26,0.95)] p-3 text-xs text-white shadow-xl">
+                                <p className="mb-2 text-[var(--text-secondary)]">Faixa {label}</p>
+                                <p className="mono-value text-[#86efac]">SIM: {formatCompactCurrency(point.simVolume)}</p>
+                                <p className="mono-value text-[#fca5a5]">NÃO: {formatCompactCurrency(point.naoVolume)}</p>
+                                <p className="mono-value mt-2 text-[#cbd5e1]">Total: {formatCompactCurrency(point.total)}</p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar dataKey="simVolume" fill="#10B981" radius={[0, 6, 6, 0]} />
+                        <Bar dataKey="naoVolume" fill="#EF4444" radius={[0, 6, 6, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+              </section>
+
+              <div className="market-info-grid">
+                <section className="market-section vp-card p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-bold text-[var(--text-primary)]">Informações do Contrato</h2>
+                        <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">infraestrutura on-chain</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[14px] border border-white/10 bg-white/4 p-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Endereço</p>
+                      <p className="mono-value mt-2 break-all text-sm text-white">{hasOnChainContract ? marketContractAddress : 'Mercado de demonstração'}</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {hasOnChainContract ? (
+                          <button
+                            onClick={copyAddress}
+                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-white"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Copiar
+                          </button>
+                        ) : null}
+                        {explorerUrl ? (
+                          <a
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-white"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Ver no explorer
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-[14px] border border-[rgba(124,58,237,0.28)] bg-[rgba(124,58,237,0.12)] p-4">
+                      <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                        <ShieldCheck className="h-4 w-4 text-[#c4b5fd]" />
+                        Mercado descentralizado
+                      </p>
+                      <p className="mt-2 text-sm text-[var(--text-secondary)]">Regras e liquidação executadas por contrato inteligente, sem custódia central.</p>
+                    </div>
+
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[rgba(168,85,247,0.25)] bg-[rgba(124,58,237,0.12)] px-4 py-2 text-xs font-semibold text-white">
+                      <Landmark className="h-4 w-4 text-[#a78bfa]" />
+                      Powered by Polygon
+                    </div>
+                </section>
+
+                <PolymarketReference marketId={market.id} />
+              </div>
+
+              {polymarketReference?.comments?.length ? (
+                <section className="market-section vp-card p-5">
+                    <div className="mb-4">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">Opinião Global</h2>
+                      <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">via Polymarket</p>
+                    </div>
+
+                    <div className="divide-y divide-white/8">
+                      {polymarketReference.comments.map((comment) => (
+                        <article key={comment.id} className="py-3 first:pt-0 last:pb-0">
+                          <p className="text-sm leading-7 text-[var(--text-primary)]">{comment.content}</p>
+                          <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--text-muted)]">
+                            <span>{comment.userName || 'Trader global'}</span>
+                            <span className="mono-value">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: ptBR })}</span>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
                 </section>
               ) : null}
 
-              <section className="vp-card p-5">
-                <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Detalhes do Mercado</h2>
-                <div className="space-y-3 text-sm text-[var(--text-secondary)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1"><ShieldCheck className="h-4 w-4" /> Status</span>
-                    <span className="font-medium text-[var(--text-primary)]">{isActive ? 'Ativo' : 'Finalizado'}</span>
+              <section className="market-section vp-card p-5">
+                <h2 className="mb-4 text-lg font-bold text-[var(--text-primary)]">Detalhes do Mercado</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[14px] border border-white/8 bg-white/4 p-4 text-sm text-[var(--text-secondary)]">
+                    <p className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Status</p>
+                    <p className="mt-2 font-semibold text-white">{isActive ? 'Ativo' : 'Finalizado'}</p>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> Encerramento</span>
-                    <span className="mono-value text-[var(--text-primary)]">{new Date(market.endDate).toLocaleDateString('pt-BR')}</span>
+                  <div className="rounded-[14px] border border-white/8 bg-white/4 p-4 text-sm text-[var(--text-secondary)]">
+                    <p className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Encerramento</p>
+                    <p className="mono-value mt-2 font-semibold text-white">{new Date(market.endDate).toLocaleDateString('pt-BR')}</p>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" /> Participantes</span>
-                    <span className="mono-value text-[var(--text-primary)]">{market.totalBettors}</span>
+                  <div className="rounded-[14px] border border-white/8 bg-white/4 p-4 text-sm text-[var(--text-secondary)]">
+                    <p className="inline-flex items-center gap-2"><Users className="h-4 w-4" /> Participantes</p>
+                    <p className="mono-value mt-2 font-semibold text-white">{market.totalBettors}</p>
                   </div>
-                  {market.tags?.length ? (
-                    <div>
-                      <p className="mb-2 text-xs uppercase tracking-[0.08em] text-[var(--text-muted)]">Tags</p>
-                      <div className="flex flex-wrap gap-2">
-                        {market.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-[999px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-2 py-1 text-xs text-[var(--text-secondary)]"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
+                  <div className="rounded-[14px] border border-white/8 bg-white/4 p-4 text-sm text-[var(--text-secondary)]">
+                    <p className="inline-flex items-center gap-2"><DollarSign className="h-4 w-4" /> Volume</p>
+                    <p className="mono-value mt-2 font-semibold text-white">{formatCompactCurrency(market.totalVolume)}</p>
+                  </div>
                 </div>
+
+                {market.tags?.length ? (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Tags</p>
+                    <div className="flex flex-wrap gap-2">
+                      {market.tags.map((tag) => (
+                        <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--text-secondary)]">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </section>
-              </aside>
             </div>
+
+            <aside className="market-sidebar">
+                <PredictionInterface market={market} />
+            </aside>
           </div>
         )}
       </main>

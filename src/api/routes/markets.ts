@@ -4,6 +4,9 @@ import { ethers } from 'ethers';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { MarketQuoteQuerySchema } from '../schemas';
+import { quoteBuy, quoteSell, getImpliedProbability } from '../services/amm';
 import { updateUserRankings } from '../jobs/update-rankings';
 import { PREDICTION_MARKET_ABI } from '../../lib/abis/PredictionMarket.abi';
 import {
@@ -20,6 +23,14 @@ import {
 
 const router = express.Router();
 const PLATFORM_FEE_RATE = 0.03;
+
+const shortenAddress = (address?: string | null) => {
+  if (!address) return 'Anônimo';
+  if (address.startsWith('0x') && address.length >= 10) {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+  return address;
+};
 
 const createMarketSchema = z.object({
   question: z.string().min(10).max(200),
@@ -626,6 +637,140 @@ router.delete('/:id', authenticate, requireAdmin, async (req: AuthenticatedReque
   } catch (error) {
     console.error('Error cancelling market:', error);
     return res.status(500).json({ success: false, error: 'Failed to cancel market' });
+  }
+});
+
+// GET /markets/:id/quote?outcome=YES&direction=BUY&amount=50 — cotação AMM sem executar
+router.get('/:id/quote', validate(MarketQuoteQuerySchema, 'query'), async (req: Request, res: Response) => {
+  try {
+    const marketId = parseMarketId(String(req.params.id));
+    if (!marketId) return res.status(400).json({ success: false, error: 'Invalid market id' });
+
+    const { outcome, direction, amount } =
+      req.query as unknown as z.infer<typeof MarketQuoteQuerySchema>;
+
+    const market = await prisma.market.findUnique({
+      where: { id: marketId },
+      select: { totalYes: true, totalNo: true, status: true, endTime: true },
+    });
+
+    if (!market) return res.status(404).json({ success: false, error: 'Market not found' });
+
+    const poolYes = toNumber(market.totalYes);
+    const poolNo = toNumber(market.totalNo);
+
+    const quote =
+      direction === 'BUY'
+        ? quoteBuy(poolYes, poolNo, outcome, Number(amount))
+        : quoteSell(poolYes, poolNo, outcome, Number(amount));
+
+    const currentProb = getImpliedProbability(poolYes, poolNo);
+
+    return res.status(200).json({
+      success: true,
+      quote,
+      market: {
+        probabilityYes: currentProb.yes,
+        probabilityNo: currentProb.no,
+        poolYes,
+        poolNo,
+      },
+    });
+  } catch (error) {
+    console.error('Quote error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to calculate quote' });
+  }
+});
+
+// GET /markets/:id/activity?limit=20 — feed de atividade do mercado
+router.get('/:id/activity', async (req: Request, res: Response) => {
+  try {
+    const marketId = parseMarketId(String(req.params.id));
+    if (!marketId) {
+      return res.status(400).json({ success: false, error: 'Invalid market id' });
+    }
+
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit || 20)));
+
+    const activities = await prisma.activity.findMany({
+      where: { marketId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        user: {
+          select: { id: true, username: true, avatarUrl: true, walletAddress: true },
+        },
+        market: {
+          select: { question: true, category: true },
+        },
+      },
+    });
+
+    const data = activities.map((a) => ({
+      id: a.id,
+      type: a.type,
+      side: a.side,
+      amount: toNumber(a.amount),
+      createdAt: a.createdAt,
+      user: {
+        id: a.user.id,
+        username: a.user.username || shortenAddress(a.user.walletAddress),
+        avatarUrl: a.user.avatarUrl,
+      },
+      market: {
+        id: a.marketId,
+        question: a.market.question,
+        category: a.market.category,
+      },
+    }));
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching market activity:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch activity' });
+  }
+});
+
+// GET /markets/activity/global?limit=20 — feed global de atividade
+router.get('/activity/global', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit || 20)));
+
+    const activities = await prisma.activity.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        user: {
+          select: { id: true, username: true, avatarUrl: true, walletAddress: true },
+        },
+        market: {
+          select: { id: true, question: true, category: true },
+        },
+      },
+    });
+
+    const data = activities.map((a) => ({
+      id: a.id,
+      type: a.type,
+      side: a.side,
+      amount: toNumber(a.amount),
+      createdAt: a.createdAt,
+      user: {
+        id: a.user.id,
+        username: a.user.username || shortenAddress(a.user.walletAddress),
+        avatarUrl: a.user.avatarUrl,
+      },
+      market: {
+        id: a.market.id,
+        question: a.market.question,
+        category: a.market.category,
+      },
+    }));
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching global activity:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch activity' });
   }
 });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, Sparkles, X } from 'lucide-react';
 import { AuthButton } from './AuthButton';
 import { ConnectWalletButton } from './ConnectWalletButton';
 import { NotificationCenter } from './NotificationCenter';
@@ -48,8 +48,8 @@ export const Header: React.FC = () => {
       <div className="section-shell py-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Link to="/" className="flex items-center transition-opacity hover:opacity-90 md:hidden" aria-label="VoxPredict">
-              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+            <Link to="/" className="group flex items-center transition-opacity hover:opacity-90 md:hidden" aria-label="VoxPredict">
+              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)] transition-transform duration-200 group-hover:rotate-3 group-hover:shadow-[0_0_28px_rgba(124,58,237,0.45)]">
                 <img
                   src={logoIconSrc}
                   alt="VoxPredict ícone"
@@ -60,8 +60,8 @@ export const Header: React.FC = () => {
               </span>
             </Link>
 
-            <Link to="/" className="hidden items-center gap-2.5 transition-opacity hover:opacity-90 md:flex" aria-label="VoxPredict">
-              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)]">
+            <Link to="/" className="group hidden items-center gap-2.5 transition-opacity hover:opacity-90 md:flex" aria-label="VoxPredict">
+              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(124,58,237,0.45)] bg-[rgba(255,255,255,0.03)] shadow-[var(--shadow-brand)] transition-all duration-200 group-hover:rotate-3 group-hover:shadow-[0_0_28px_rgba(124,58,237,0.45)]">
                 <img
                   src={logoIconSrc}
                   alt="VoxPredict ícone"
@@ -87,13 +87,18 @@ export const Header: React.FC = () => {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`rounded-[8px] px-4 py-2 text-sm font-semibold transition-all ${
+                  className={`relative rounded-[8px] px-4 py-2 text-sm font-semibold transition-all ${
                     active
-                      ? 'bg-[rgba(124,58,237,0.28)] text-[var(--text-primary)] shadow-[0_0_18px_rgba(124,58,237,0.25)]'
+                      ? 'bg-[rgba(124,58,237,0.18)] text-[var(--text-primary)] shadow-[0_0_18px_rgba(124,58,237,0.18)]'
                       : 'text-[var(--text-secondary)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {item.label}
+                  <span
+                    className={`absolute inset-x-3 -bottom-[2px] h-[2px] rounded-full bg-[linear-gradient(90deg,#7c3aed,#22c55e)] transition-opacity ${
+                      active ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  />
                 </button>
               );
             })}
@@ -108,7 +113,7 @@ export const Header: React.FC = () => {
           <div className="flex items-center gap-2 lg:hidden">
             <button
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="rounded-[8px] border border-[var(--border)] bg-[rgba(255,255,255,0.04)] p-2 text-[var(--text-primary)]"
+              className="rounded-[10px] border border-[var(--border)] bg-[rgba(255,255,255,0.04)] p-2 text-[var(--text-primary)] transition-all hover:border-[rgba(124,58,237,0.35)]"
               aria-label="Abrir menu"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -182,6 +187,12 @@ export const Header: React.FC = () => {
                   {canShowWalletButton ? 'Conta autenticada' : 'Área administrativa'}
                 </p>
               )}
+              {canShowWalletButton ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(124,58,237,0.22)] bg-[rgba(124,58,237,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#c4b5fd]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Wallet ativa
+                </div>
+              ) : null}
               <AuthButton />
               <div className="flex items-center justify-between gap-2">
                 {isSignedIn && <NotificationCenter />}

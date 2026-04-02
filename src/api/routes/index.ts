@@ -15,6 +15,8 @@ import proposalsRouter from './proposals';
 import templatesRouter from './templates';
 import leaderboardRouter from './leaderboard';
 import polymarketRouter from './polymarket';
+import commentsRouter from './comments';
+import streamRouter from './stream';
 
 const router = express.Router();
 
@@ -34,5 +36,7 @@ router.use('/proposals', proposalsRouter);
 router.use('/templates', templatesRouter);
 router.use('/leaderboard', leaderboardRouter);
 router.use('/polymarket', polymarketRouter);
+router.use('/comments', commentsRouter);
+router.use('/stream', streamRouter);
 
 export default router;

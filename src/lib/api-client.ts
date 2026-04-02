@@ -223,6 +223,18 @@ export const api = {
       }),
     }),
 
+  getMarketActivity: (id: number | string, limit = 20) =>
+    request<any>(`/api/markets/${id}/activity?limit=${Math.max(1, Math.floor(limit))}`),
+  getGlobalActivity: (limit = 20) =>
+    request<any>(`/api/markets/activity/global?limit=${Math.max(1, Math.floor(limit))}`),
+
+  getMarketComments: (id: number | string, cursor?: string) =>
+    request<any>(`/api/comments/${id}${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
+  postComment: (marketId: number | string, content: string) =>
+    request<any>(`/api/comments/${marketId}`, { method: 'POST', body: JSON.stringify({ content }) }),
+  upvoteComment: (commentId: string) =>
+    request<any>(`/api/comments/upvote/${commentId}`, { method: 'POST' }),
+
   createProposal: (data: ProposalInput) =>
     request<any>('/api/proposals', { method: 'POST', body: JSON.stringify(data) }),
   getMyProposals: () => request<any>('/api/proposals/my'),

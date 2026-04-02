@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { authenticate, requireAdmin, type AuthenticatedRequest } from '../middleware/auth';
 import { getTrendingPolymarketEvents } from '../services/polymarket';
@@ -7,6 +6,7 @@ import { getTrendingPolymarketEvents } from '../services/polymarket';
 const router = express.Router();
 
 let aiEnabled = true;
+let anthropicModulePromise: Promise<typeof import('@anthropic-ai/sdk')> | null = null;
 
 const generateSchema = z.object({
   newsText: z.string().min(20).optional(),
@@ -132,6 +132,15 @@ const buildPolymarketTrendingContext = async () => {
 ${lines.join('\n')}`;
 };
 
+const createAnthropicClient = async () => {
+  if (!anthropicModulePromise) {
+    anthropicModulePromise = import('@anthropic-ai/sdk');
+  }
+
+  const anthropicModule = await anthropicModulePromise;
+  return new anthropicModule.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+};
+
 router.post('/generate-market', authenticate, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const parsed = generateSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -157,7 +166,7 @@ router.post('/generate-market', authenticate, requireAdmin, async (req: Authenti
   const endDate = (parsed.data.endDate || parsed.data.dataEncerramento || '').trim();
 
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = await createAnthropicClient();
     const polymarketContext = await buildPolymarketTrendingContext();
     const userPrompt = newsText
       ? `${polymarketContext ? `${polymarketContext}\n\n` : ''}Use a notícia abaixo como contexto principal e, se necessário, complemente com web search para hoje.
